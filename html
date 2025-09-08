@@ -1,0 +1,103 @@
+<!doctype html>
+// Lines for LineString
+map.addLayer({ id: 'lines', type: 'line', source: sourceId, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#1d4ed8', 'line-width': 2 } });
+// Circles for points
+map.addLayer({ id: 'points', type: 'circle', source: sourceId, filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 5, 'circle-color': '#3b82f6', 'circle-stroke-width': 1, 'circle-stroke-color': '#111827' } });
+}
+}
+
+
+async function init() {
+const stylePicker = document.getElementById('stylePicker');
+const featureCountEl = document.getElementById('featureCount');
+
+
+const map = new mapboxgl.Map({
+container: 'map',
+style: stylePicker.value,
+center: [153.0251, -27.4698], // Fallback: Brisbane
+zoom: 9,
+attributionControl: false,
+hash: true,
+});
+
+
+map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+map.addControl(new mapboxgl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true }));
+map.addControl(new mapboxgl.FullscreenControl());
+
+
+stylePicker.addEventListener('change', () => map.setStyle(stylePicker.value));
+
+
+// When the style loads (and also whenever it changes), (re-)add the source and layers
+async function onStyleReady() {
+try {
+const text = await fetchText(DATA_URL);
+const fc = parseNDJSONtoFeatureCollection(text);
+featureCountEl.textContent = `${fc.features.length.toLocaleString()} features`;
+
+
+if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+map.addSource(SOURCE_ID, { type: 'geojson', data: fc });
+addOrUpdateLayers(map, SOURCE_ID);
+
+
+const bbox = computeBbox(fc);
+if (bbox) {
+map.fitBounds(bbox, { padding: 40, maxZoom: 16, duration: 800 });
+}
+} catch (err) {
+console.error(err);
+featureCountEl.textContent = 'Failed to load data';
+alert('Error loading GeoJSONL file. Check the filename/path and that the file is valid.');
+}
+}
+
+
+map.on('style.load', onStyleReady);
+
+
+// Cluster toggle
+document.getElementById('clusterToggle').addEventListener('change', () => {
+if (!map.isStyleLoaded()) return;
+// Re-add layers with/without clustering
+const src = map.getSource(SOURCE_ID);
+if (!src) return;
+const data = src._data || src._options?.data; // capture current data
+map.removeSource(SOURCE_ID);
+map.addSource(SOURCE_ID, { type: 'geojson', data, cluster: document.getElementById('clusterToggle').checked, clusterRadius: 50, clusterMaxZoom: 14 });
+addOrUpdateLayers(map, SOURCE_ID);
+});
+
+
+// Popup on click for any geometry
+map.on('click', (e) => {
+const layers = ['points','lines','fills','cluster-unclustered'];
+const features = map.queryRenderedFeatures(e.point, { layers: layers.filter(id => map.getLayer(id)) });
+if (!features.length) return;
+const f = features[0];
+const propsHTML = `<pre style="margin:0;white-space:pre-wrap;font-family:ui-monospace, SFMono-Regular, Consolas, monospace;">${
+JSON.stringify(f.properties || {}, null, 2)
+.replace(/[&<>]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]))
+}</pre>`;
+new mapboxgl.Popup({ offset: 8 })
+.setLngLat(e.lngLat)
+.setHTML(propsHTML)
+.addTo(map);
+});
+
+
+// Cursor feedback
+map.on('mousemove', (e) => {
+const hit = map.queryRenderedFeatures(e.point, { layers: ['points','lines','fills','cluster','cluster-unclustered'].filter(id => map.getLayer(id)) });
+map.getCanvas().style.cursor = hit.length ? 'pointer' : '';
+});
+}
+
+
+init();
+</script>
+</body>
+</html>

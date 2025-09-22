@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635" id="2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+	<SimpleField name="Name" type="string"></SimpleField>
+	<SimpleField name="Description" type="string"></SimpleField>
+	<SimpleField name="OBJECTID" type="int"></SimpleField>
+	<SimpleField name="CONTRACT" type="string"></SimpleField>
+	<SimpleField name="AREA_SQM" type="float"></SimpleField>
+	<SimpleField name="VISITS_EXISTING" type="int"></SimpleField>
+	<SimpleField name="OSS_CATCHMENT" type="int"></SimpleField>
+	<SimpleField name="GlobalID" type="string"></SimpleField>
+</Schema>
+<Folder><name>2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635</name>
+  <Placemark>
+	<name>MLB400</name>
+	<description>41 Chatsworth Circuit, Capalaba 4157</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">1</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">2203.9</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">2</SimpleData>
+		<SimpleData name="GlobalID">ef7b3686-7102-4050-a266-1f6e36e0b08f</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.189645842642,-27.5424000069072 153.189293308115,-27.5424915244239 153.189265561844,-27.5427366417029 153.189259969622,-27.5427860136912 153.189257430472,-27.5428084604244 153.189249299151,-27.5428803152561 153.188957694738,-27.5428539714104 153.188862289071,-27.5427719745636 153.188949195824,-27.5424387462296 153.189038266473,-27.5424528981884 153.189128528804,-27.5424472864679 153.189214534411,-27.5424222434853 153.189291100238,-27.5423792749325 153.189353622421,-27.5423209780939 153.18939830892,-27.5422508519394 153.189645842642,-27.5424000069072</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB401</name>
+	<description>1 Poinsettia Way, Ormiston 4160</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">3</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">644.5</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">3</SimpleData>
+		<SimpleData name="GlobalID">8e264731-f57f-481c-aaba-e8f93442a0d9</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.247233036592,-27.5159213286955 153.247251670837,-27.5156509827469 153.247463631576,-27.5156625948463 153.247455291821,-27.5159334912633 153.247233036592,-27.5159213286955</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB402</name>
+	<description>14 Willowie Crescent, Capalaba 4157</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">4</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">713.7</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">2</SimpleData>
+		<SimpleData name="GlobalID">182a06e5-60c6-4b4d-b4f5-4441c4e701a4</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.184071164904,-27.5354650480704 153.18405457335,-27.5355545904691 153.183819497188,-27.5355199545573 153.183802905377,-27.5356094698428 153.183628092452,-27.5355837547193 153.183596630917,-27.5355865136602 153.183576529867,-27.5355359254072 153.183583407223,-27.5354906911732 153.183610970227,-27.5353420288237 153.183614065237,-27.5353700924085 153.183632474562,-27.5353930079323 153.183661286316,-27.5354046429211 153.184071164904,-27.5354650480704</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB403</name>
+	<description>3A Allambee Crescent, Capalaba 4157</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">5</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">232.97167969</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">2</SimpleData>
+		<SimpleData name="GlobalID">fa73219f-0df4-4474-8719-a2dc57fa810f</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.182601862446,-27.5352449051991 153.182629464263,-27.5350423763408 153.182626665186,-27.5350394026232 153.182732856304,-27.5350601075647 153.182702461524,-27.5352626401126 153.182601862446,-27.5352449051991</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB404</name>
+	<description>35 Sugarglider Court, Mount Cotton 4165</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">6</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">3777.285</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">5</SimpleData>
+		<SimpleData name="GlobalID">5ea95c8c-91d1-455f-b9b8-929f2a10606e</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.248123613567,-27.6230302122108 153.249193118682,-27.6232423349661 153.248908319523,-27.6235434636797 153.248059318215,-27.6233703038137 153.248070699546,-27.6231715964113 153.248123613567,-27.6230302122108</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB405</name>
+	<description>185A Collingwood Road, Birkdale 4159</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">7</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">7253</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">1</SimpleData>
+		<SimpleData name="GlobalID">5efbcfa9-9968-4084-a4fc-b68f59f7b3dd</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.227765270724,-27.499680072173 153.228253393426,-27.4999706860491 153.228851315424,-27.5002467858491 153.229352509008,-27.5003797244794 153.229341977739,-27.5004681214466 153.229280367778,-27.5004682229761 153.229138608473,-27.5005711678965 153.22903972866,-27.5006835972369 153.228916597451,-27.5007267952676 153.228723531976,-27.5006315667864 153.228643017798,-27.5005576513004 153.228624064346,-27.5004597485958 153.22841225447,-27.5003669392562 153.228291668153,-27.5003456398874 153.228037285494,-27.500391440294 153.227654024179,-27.5002917452104 153.227765270724,-27.499680072173</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB406</name>
+	<description>22-24 Christopher street Redland Bay</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">8</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">329.032</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">4</SimpleData>
+		<SimpleData name="GlobalID">b7ceb8da-1724-446d-b641-76d6105eded3</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.307359621266,-27.6420214523649 153.30753297605,-27.6420070092048 153.307551930971,-27.6421782323988 153.307382853905,-27.6421977784833 153.307359621266,-27.6420214523649</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB407</name>
+	<description>Western Gate Cleveland WWTP</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">9</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">1660.754</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">2</SimpleData>
+		<SimpleData name="GlobalID">dfbe6e19-d7de-4d55-9d3b-86f445a0a449</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.233267906672,-27.5456864446297 153.23380616038,-27.5456855402805 153.233781228663,-27.5458455051215 153.233781605366,-27.5460234469735 153.233291201885,-27.5459476877 153.233267906672,-27.5456864446297</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark>
+	<name>MLB408</name>
+	<description>34 Smith Street Capalaba</description>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#2425_Mowing_and_Vegetation_Management_Services_FFVIEW__2189254434813762635">
+		<SimpleData name="OBJECTID">10</SimpleData>
+		<SimpleData name="CONTRACT">Schedule 10</SimpleData>
+		<SimpleData name="AREA_SQM">2516.902</SimpleData>
+		<SimpleData name="VISITS_EXISTING">9</SimpleData>
+		<SimpleData name="OSS_CATCHMENT">2</SimpleData>
+		<SimpleData name="GlobalID">720a4156-26d7-42c2-b5fb-f01657579901</SimpleData>
+	</SchemaData></ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>153.196810188462,-27.5254917805844 153.197157038299,-27.5252498556024 153.197477003249,-27.525118742814 153.197541323298,-27.5254538189795 153.197180179565,-27.5257199084564 153.196810188462,-27.5254917805844</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+</Folder>
+</Document></kml>

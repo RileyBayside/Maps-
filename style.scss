@@ -1,0 +1,121 @@
+// Basic styling for all pages
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+// Map container styling
+#map {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #333;
+}
+
+// Styling for the search container
+#search-container {
+    position: absolute;
+    bottom: 20px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    border-radius: 25px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+// Input styling for search
+#search-input {
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    outline: none;
+}
+
+// Button styling for search
+#search-button {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+// Styling for live location button
+#locate-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+// Styling for labels
+.label {
+    font-size: 16px;
+    color: white;
+    text-shadow: -1px -1px 2px #333, 1px -1px 2px #333, -1px 1px 2px #333, 1px 1px 2px #333;
+}
+
+// Styling for buttons on the index page
+.button {
+    font-size: 24px;
+    padding: 15px 30px;
+    margin: 10px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+}
+
+// Styling for "Hey" message on the index page
+.hey-message {
+    font-size: 100px;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    color: #333;
+} 
+
+// Menu container styling on the index page
+.menu {
+    margin-top: 20px;
+    display: none;
+}
+#back-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+

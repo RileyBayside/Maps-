@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', cursive, sans-serif;
+            font-size: 100px;
+            background-color: #fff;
+        }
+        .menu {
+            margin-top: 20px;
+        }
+        .button {
+            font-size: 24px;
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function() {
+                document.querySelector('.hey-message').style.display = 'none';
+                document.querySelector('.menu').style.display = 'block';
+            }, 1000);
+        });
+    </script>
+</head>
+<body>
+    <div class="hey-message">Site Map</div>
+    <div class="menu" style="display: none;">
+        <button class="button" onclick="window.location.href='SiteFind.html'">Parks/Lanes</button>
+        <button class="button" onclick="window.location.href='ffzsf_map_app.html'">Slashing/Utility (In Progress)</button>
+    </div>
+</body>
+</html>

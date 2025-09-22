@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redland City Offline Map App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        #search-container {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 25px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+        #search-input {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+        }
+        #search-button {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .label {
+            font-size: 16px;
+            color: white;
+            text-shadow: -1px -1px 2px #333, 1px -1px 2px #333, -1px 1px 2px #333, 1px 1px 2px #333;
+        }
+        #locate-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        #back-button {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        #back-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <button id="locate-button" title="Locate Me">
+        📍
+    </button>
+    <div id="search-container">
+        <input id="search-input" type="text" placeholder="Enter site ID..." />
+        <button id="search-button">Search</button>
+    </div>
+    <button id="back-button" onclick="window.location.href='index.html'">Back to Home</button>
+
+    <script>
+        // Initialize the map centered on Redland City, QLD
+        var redlandCityBounds = [[-27.7000, 153.1000], [-27.3000, 153.5000]];
+        var map = L.map('map', {
+            minZoom: 10,
+            maxZoom: 22, // Increased max zoom level
+            zoomControl: false,
+            maxBounds: redlandCityBounds,
+            maxBoundsViscosity: 1.0
+        }).setView([-27.5237, 153.2500], 12);
+
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Set up the tile layer for a clearer satellite view with property boundaries
+        L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 22, // Match the max zoom level of the map
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '&copy; <a href="https://www.google.com/intl/en/help/terms_maps/">Google Maps</a>'
+        }).addTo(map);
+
+        // Placeholder for site data from KML files
+        var sites = {};
+        var labels = [];
+
+        // Load KML files and add labels
+        function loadKmlAndAddToMap(url, color) {
+            omnivore.kml(url).on('ready', function() {
+                var layer = this;
+                layer.eachLayer(function(layer) {
+                    var name = layer.feature.properties.name;
+                    var bounds = layer.getBounds();
+                    var center = bounds.getCenter();
+
+                    // Create label
+                    var label = L.marker(center, {
+                        icon: L.divIcon({
+                            className: 'label',
+                            html: `<b>${name}</b>`,
+                            iconSize: [100, 20],
+                            iconAnchor: [50, -10]
+                        })
+                    });
+
+                    // Store labels for dynamic visibility control
+                    labels.push({ label: label, bounds: bounds });
+
+                    // Add polygon and label to the map
+                    layer.setStyle({
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.5,
+                        weight: 1
+                    });
+                    layer.addTo(map);
+                });
+            }).addTo(map);
+        }
+
+      // Function to load KML and add to map with labels
+function loadKmlAndAddToMap(url, color) {
+    omnivore.kml(url).on('ready', function () {
+        var layerGroup = L.layerGroup();
+
+        this.eachLayer(function (layer) {
+            var name = layer.feature?.properties?.name; // Safely access name property
+            var bounds = layer.getBounds();
+            var center = bounds.getCenter();
+
+            if (name) {
+                // Create a label as a marker with a divIcon
+                var label = L.marker(center, {
+                    icon: L.divIcon({
+                        className: 'label',
+                        html: `<b>${name}</b>`,
+                        iconSize: [100, 20],
+                        iconAnchor: [50, -10]
+                    })
+                }).addTo(map);
+
+                // Store the label in the labels array
+                labels.push({ label: label, bounds: bounds });
+            }
+
+            // Add layer to layerGroup
+            layer.setStyle({
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.5,
+                weight: 1
+            });
+            layerGroup.addLayer(layer);
+
+            // Add site to the sites object
+            sites[name] = {
+                layerGroup: layerGroup,
+                bounds: bounds
+            };
+        });
+
+        layerGroup.addTo(map);
+    }).addTo(map);
+}
+
+// Function to dynamically manage labels based on zoom level
+map.on('zoomend moveend', function () {
+    var currentZoom = map.getZoom();
+
+    labels.forEach(function (item) {
+        if (currentZoom >= 15 && map.getBounds().contains(item.bounds)) {
+            if (!map.hasLayer(item.label)) {
+                map.addLayer(item.label);
+            }
+        } else {
+            if (map.hasLayer(item.label)) {
+                map.removeLayer(item.label);
+            }
+        }
+    });
+});
+
+// Load KML files with labels
+loadKmlAndAddToMap('11_cpy.kml', 'purple');
+loadKmlAndAddToMap('15_cpy.kml', '#228b22'); // Slightly darker green
+loadKmlAndAddToMap('18_cpy.kml', 'blue');
+
+// Enhanced search functionality
+document.getElementById('search-button').addEventListener('click', function () {
+    var siteName = document.getElementById('search-input').value.trim().toLowerCase();
+    var matchedSite = Object.keys(sites).find(key => key.toLowerCase() === siteName);
+
+    if (matchedSite) {
+        var site = sites[matchedSite];
+        map.fitBounds(site.bounds);
+        site.layerGroup.eachLayer(function (layer) {
+            if (layer.openPopup) {
+                layer.openPopup();
+            }
+        });
+    } else {
+        alert('Site not found. Make sure site ID starts with "M" (e.g. M0123)');
+    }
+});
+
+        // Live location functionality
+        document.getElementById('locate-button').addEventListener('click', function () {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    map.setView([lat, lng], 15);
+                    L.marker([lat, lng]).addTo(map)
+                        .bindPopup('You are here').openPopup();
+                }, function() {
+                    alert('Unable to retrieve your location');
+                });
+            } else {
+                alert('Geolocation is not supported by your browser');
+            }
+        });
+    </script>
+</body>
+</html>

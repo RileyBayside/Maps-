@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redland City Offline Map App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .label {
+            font-size: 14px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 8px;
+            border-radius: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        // Initialize the map centered on Redland City, QLD
+        var redlandCityBounds = [[-27.7000, 153.1000], [-27.3000, 153.5000]];
+        var map = L.map('map', {
+            minZoom: 10,
+            maxZoom: 22,
+            zoomControl: true,
+            maxBounds: redlandCityBounds,
+            maxBoundsViscosity: 1.0
+        }).setView([-27.5237, 153.2500], 12);
+
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Set up the tile layer for satellite view
+        L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 22,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '&copy; <a href="https://www.google.com/intl/en/help/terms_maps/">Google Maps</a>'
+        }).addTo(map);
+
+        // Labels storage
+        var labels = [];
+
+        // Function to load KML files, add polygons, labels, and widths
+        function loadKmlAndAddToMap(url, color, addLabels, showWidth) {
+            omnivore.kml(url).on('ready', function() {
+                var layer = this;
+                layer.eachLayer(function(layer) {
+                    var properties = layer.feature.properties;
+                    var bounds = layer.getBounds();
+                    var center = bounds.getCenter();
+
+                    // Add polygon styling with wider stroke
+                    layer.setStyle({
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.5,
+                        weight: 3 // Wider stroke
+                    });
+
+                    // Add dynamic width label if enabled
+                    if (showWidth && properties['existing width']) {
+                        var widthLabel = L.marker(center, {
+                            icon: L.divIcon({
+                                className: 'label',
+                                html: `<b>${properties['existing width']}M</b>`,
+                                iconSize: [70, 20],
+                                iconAnchor: [35, -10]
+                            })
+                        });
+                        labels.push(widthLabel);
+                        map.addLayer(widthLabel);
+                    }
+
+                    // Add name label at polygon center if enabled
+                    if (addLabels && properties.name) {
+                        var nameLabel = L.marker(center, {
+                            icon: L.divIcon({
+                                className: 'label',
+                                html: `<b>${properties.name}</b>`,
+                                iconSize: [100, 20],
+                                iconAnchor: [50, -10]
+                            })
+                        });
+                        labels.push(nameLabel);
+                        map.addLayer(nameLabel);
+                    }
+
+                    // Add polygons to the map
+                    layer.addTo(map);
+                });
+            }).addTo(map);
+        }
+
+        // Load KML files with specific options
+        loadKmlAndAddToMap('ffz.kml', 'lime', true, true); // Green, add labels and width
+        loadKmlAndAddToMap('wbs.kml', 'green', true, true); // Green, add labels and width
+        loadKmlAndAddToMap('sla.kml', 'pink', true, true); // Pink, add labels and width
+
+        // Dynamic label visibility based on zoom level
+        map.on('zoomend moveend', function() {
+            var currentZoom = map.getZoom();
+            labels.forEach(function(label) {
+                if (currentZoom >= 15) {
+                    if (!map.hasLayer(label)) {
+                        map.addLayer(label);
+                    }
+                } else {
+                    if (map.hasLayer(label)) {
+                        map.removeLayer(label);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

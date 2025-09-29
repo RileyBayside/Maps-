@@ -1,0 +1,32 @@
+:root{
+  --bayside-sidebar-width: 320px;
+}
+#bayside-sidebar{
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: var(--bayside-sidebar-width);
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  padding: 10px 10px 14px;
+  z-index: 10000;
+  display: none;
+  font-family: system-ui, Arial, sans-serif;
+}
+#bayside-sidebar.open{ display:block; }
+#bayside-sidebar h2{ margin: 6px 0 8px; font-size: 18px; }
+#bayside-filter{ width: 100%; padding: 6px 8px; border:1px solid #ddd; border-radius:8px; margin-bottom:8px;}
+.bayside-actions{ display:flex; gap:8px; margin-bottom:8px; }
+.bayside-actions button{ padding:6px 8px; border:1px solid #ddd; background:#f8f8f8; border-radius:8px; cursor:pointer;}
+.catchment-section{ border:1px solid #eee; border-radius:8px; margin-bottom:8px;}
+.catchment-title{ padding:6px 8px; cursor:pointer; font-weight:600; background:#f7f7f7; border-bottom:1px solid #eee; border-radius:8px 8px 0 0;}
+.catchment-body{ display:none; padding:6px 8px;}
+.catchment-body.open{ display:block;}
+.catchment-list{ list-style:none; margin:0; padding:0; }
+.catchment-list li{ padding:6px 6px; cursor:pointer; border-radius:6px;}
+.catchment-list li:hover{ background:#f0f0f0; }
+.leaflet-top.leaflet-left .bayside-toggle.leaflet-control{ margin-top: 70px; } /* below zoom & search if present */
+.bayside-toggle a{ width:32px; height:32px; line-height:32px; text-align:center; font-weight:700; }

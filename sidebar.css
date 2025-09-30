@@ -1,0 +1,18 @@
+.park-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.park-entry label {
+  font-weight: bold;
+  text-align: center;
+}
+
+.park-entry textarea {
+  width: 90%;
+  margin-top: 4px;
+  text-align: center;
+}

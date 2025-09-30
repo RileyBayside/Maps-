@@ -1,0 +1,53 @@
+
+#sidebar {
+  position: absolute;
+  top: 110px; /* safely below search/zoom controls */
+  left: 0;
+  width: 300px;
+  height: calc(100% - 110px);
+  background: white;
+  overflow-y: auto;
+  z-index: 1000;
+  border-right: 1px solid #ccc;
+  padding: 10px;
+  transition: transform 0.3s ease;
+  text-align: center; /* ✅ Center align all text */
+}
+#sidebar.collapsed { 
+  transform: translateX(-100%); 
+}
+#sidebar-toggle {
+  position: absolute;
+  top: 10px;
+  left: 310px;
+  z-index: 1100;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.zone h3 { 
+  margin: 5px 0; 
+  cursor: pointer; 
+  background: #f0f0f0; 
+  padding: 5px; 
+  border-radius: 4px; 
+}
+#sidebar button {
+  display: block;
+  margin: 10px auto; /* ✅ Center buttons */
+}
+
+/* ✅ Park numbers styled as hyperlinks */
+.park-link {
+  color: #007bff; 
+  text-decoration: underline;
+  cursor: pointer;
+  display: block;
+  margin: 5px 0;
+}
+.park-link:hover {
+  color: #0056b3;
+}

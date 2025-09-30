@@ -1,7 +1,7 @@
 
 #sidebar {
   position: absolute;
-  top: 90px; /* moved slightly lower so it sits just beneath search */
+  top: 80px; /* moved slightly lower so it sits just beneath search */
   left: 0;
   width: 240px; /* narrower */
   height: calc(100% - 90px);

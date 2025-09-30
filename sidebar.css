@@ -1,0 +1,51 @@
+
+#sidebar {
+  position: absolute;
+  top: 60px; /* below map controls */
+  left: 0;
+  width: 300px;
+  height: calc(100% - 60px);
+  background: white;
+  overflow-y: auto;
+  z-index: 1000;
+  border-right: 1px solid #ccc;
+  padding: 10px;
+  transition: transform 0.3s ease;
+}
+#sidebar.collapsed {
+  transform: translateX(-100%);
+}
+#sidebar-toggle {
+  position: absolute;
+  top: 10px;
+  left: 310px;
+  z-index: 1100;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.zone h3 {
+  margin: 5px 0;
+  cursor: pointer;
+  background: #eee;
+  padding: 5px;
+}
+.hidden { display: none; }
+.park-item {
+  display: flex;
+  align-items: center;
+  margin: 2px 0;
+}
+.park-item input[type="text"] {
+  flex: 1;
+  margin-left: 5px;
+}
+#admin-tools {
+  display: none;
+  margin-top: 20px;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
+}

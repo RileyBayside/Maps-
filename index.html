@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Parks</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+</head>
+<body>
+  <div id="sidebar" class="sidebar expanded">
+    <h2>Parks</h2>
+    <button id="toggleBtn">Collapse/Expand</button>
+    <button id="adminBtn">Admin Login</button>
+    <div class="zone-list">
+      <button class="zone">Zone 1</button>
+      <button class="zone">Zone 2</button>
+      <button class="zone">Zone 3</button>
+      <button class="zone">Zone 4</button>
+      <button class="zone">Zone 5</button>
+    </div>
+  </div>
+  <div id="collapsedTab" class="collapsed-tab">Parks</div>
+  <div id="map"></div>
+  <script src="script.js"></script>
+</body>
+</html>

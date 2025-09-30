@@ -1,1 +1,0 @@
-// Updated script.js with park addresses, zone fixes, collapsible sidebars

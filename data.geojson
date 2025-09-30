@@ -1,0 +1,7 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "id": "M0123", "name": "Helens Street" }, "geometry": { "type": "Point", "coordinates": [153.25, -27.55] } },
+    { "type": "Feature", "properties": { "id": "M0427", "name": "Sample Park" }, "geometry": { "type": "Point", "coordinates": [153.26, -27.56] } }
+  ]
+}

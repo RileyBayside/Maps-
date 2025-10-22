@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bayside — Photos</title>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{ --ink:#0f172a; --muted:#e5e7eb; --card:#fff; --bg:#f6f7fb; --accent:#d11e2b; --accent-600:#b71a24; }
+    body{ margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+    .container{ max-width:1100px; margin:22px auto; padding:0 16px }
+    .hdr{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px }
+    .title{ font-weight:800; font-size:22px }
+    .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+    input,button,select{ border:1px solid var(--muted); border-radius:10px; padding:10px 12px; font-size:14px }
+    .btn{ cursor:pointer; font-weight:800 }
+    .btn-accent{ background:var(--accent); color:#fff; border:0 }
+    .btn-accent:hover{ background:var(--accent-600) }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap:12px; margin-top:14px }
+    .card{ background:var(--card); border:1px solid var(--muted); border-radius:12px; overflow:hidden }
+    .ph{ width:100%; aspect-ratio: 16/10; object-fit:cover; display:block }
+    .meta{ display:flex; justify-content:space-between; gap:8px; padding:8px 10px; font-size:12px; align-items:center }
+    .muted{ color:#64748b }
+    .danger{ color:#b91c1c }
+    .small{ font-size:12px }
+  </style>
+</head>
+<body>
+
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="auth-guard.js"></script>
+
+  <div class="container">
+    <div class="hdr">
+      <div class="title">Site Photos</div>
+      <div class="row">
+        <a href="admin.html" class="btn">← Back to Admin</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <input id="siteId" placeholder="Site ID (e.g., M0123)" />
+      <select id="countSel">
+        <option value="24" selected>Last 24</option>
+        <option value="60">Last 60</option>
+        <option value="120">Last 120</option>
+      </select>
+      <button id="loadBtn" class="btn btn-accent">Load</button>
+      <span id="who" class="small muted">—</span>
+    </div>
+
+    <div id="grid" class="grid"></div>
+  </div>
+
+  <script>
+  (function(){
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    const siteInput = document.getElementById('siteId');
+    const countSel = document.getElementById('countSel');
+    const grid = document.getElementById('grid');
+    const who = document.getElementById('who');
+
+    let currentUser = null;
+    let isAdmin = false;
+
+    auth.onAuthStateChanged(async (u)=>{
+      currentUser = u;
+      if (!u) return;
+      who.textContent = (u.email || u.uid);
+      try{
+        const token = await u.getIdTokenResult(true);
+        isAdmin = token.claims && token.claims.role === 'admin';
+        if (isAdmin) who.textContent += ' · admin';
+      }catch{}
+    });
+
+    async function load() {
+      grid.innerHTML = 'Loading…';
+      const siteId = (siteInput.value || '').trim().toUpperCase();
+      const limitN = parseInt(countSel.value, 10) || 24;
+
+      let q = db.collection('site_photos').orderBy('createdAt', 'desc').limit(limitN);
+      if (siteId) q = q.where('siteId', '==', siteId);
+
+      const snap = await q.get();
+      if (snap.empty) { grid.textContent = 'No photos found.'; return; }
+
+      const frag = document.createDocumentFragment();
+      snap.forEach(doc=>{
+        const d = doc.data();
+        const card = document.createElement('div'); card.className = 'card';
+
+        const img = document.createElement('img');
+        img.className = 'ph';
+        img.src = d.url || '';
+        img.alt = d.storagePath || d.siteId || 'photo';
+        img.loading = 'lazy';
+        card.appendChild(img);
+
+        const meta = document.createElement('div'); meta.className = 'meta';
+        const left = document.createElement('div'); left.innerHTML =
+          `<div><b>${d.siteId || '—'}</b></div>
+           <div class="muted small">${(d.uploadedBy || '—').slice(0,18)}</div>`;
+        meta.appendChild(left);
+
+        const right = document.createElement('div'); right.className='row';
+        const open = document.createElement('a'); open.className='btn small'; open.textContent='Open'; open.target='_blank'; open.href=d.url;
+        right.appendChild(open);
+
+        if (isAdmin) {
+          const del = document.createElement('button'); del.className='btn small danger'; del.textContent='Delete';
+          del.onclick = async ()=>{
+            if (!confirm('Delete this photo? This cannot be undone.')) return;
+            try {
+              // delete from Storage
+              if (d.storagePath) await storage.ref(d.storagePath).delete();
+            } catch(e) {
+              console.warn('storage delete', e);
+            }
+            try {
+              // delete Firestore doc
+              await db.collection('site_photos').doc(doc.id).delete();
+            } catch(e) {
+              console.warn('fs delete', e);
+            }
+            card.remove();
+          };
+          right.appendChild(del);
+        }
+
+        meta.appendChild(right);
+        card.appendChild(meta);
+        frag.appendChild(card);
+      });
+      grid.innerHTML = '';
+      grid.appendChild(frag);
+    }
+
+    document.getElementById('loadBtn').addEventListener('click', load);
+
+    // Pre-fill Site ID from query string ?site=M0123 if present
+    const params = new URLSearchParams(location.search);
+    if (params.get('site')) siteInput.value = params.get('site').toUpperCase();
+
+    // initial load
+    setTimeout(load, 200);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Assigned Parks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="logo.png" type="image/png" />
+
+  <!-- Core styles -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+
+  <style>
+    :root{
+      --ink:#0f172a; --muted:#e5e7eb; --card:#ffffff;
+      --accent:#d11e2b; --accent-600:#b71a24;
+      --soft:#f8fafc; --soft-2:#f1f5f9;
+    }
+    #map { height: 100vh; }
+
+    /* Sidebar compact + brand */
+    #sidebar{
+      width: 340px;
+      max-width: 86vw;
+      background:#fff;
+      border-right:1px solid var(--muted);
+      box-shadow:0 8px 26px rgba(16,24,40,.08);
+      overflow:auto;
+    }
+    #sidebar .sidebar-head{
+      position: sticky; top:0; z-index: 5;
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px;
+      color:#fff; font-weight:800;
+      background: linear-gradient(90deg, var(--accent), #eb4550);
+      border-bottom:1px solid rgba(255,255,255,.15);
+    }
+    #sidebar .sidebar-head img{ height:24px; width:auto; display:block }
+    #sidebar .sidebar-head .title{ font-size:14px; letter-spacing:.3px }
+
+    /* Buttons inside sidebar */
+    #sidebar button{
+      border:0; border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer; background: var(--accent); color:#fff;
+    }
+    #sidebar #toggle-all{ display:block; width:calc(100% - 24px); margin:10px 12px 8px; background:var(--accent); }
+    #sidebar #toggle-all:hover{ background:var(--accent-600); }
+
+    /* Full-width utility buttons */
+    #sidebar .wide-btn{
+      display:block; width:calc(100% - 24px); margin:8px 12px;
+      background:#111827; color:#fff;
+    }
+    #sidebar .wide-btn:hover{ background:#0b1220; }
+
+    #sidebar #sidebar-content{ padding:8px 12px 16px; }
+
+    /* Groups / details */
+    #sidebar-content details{
+      border:1px solid var(--muted); border-radius:12px; overflow:hidden;
+      background:#fff; margin-bottom:8px;
+    }
+    #sidebar-content details > summary{
+      list-style:none; cursor:pointer; user-select:none;
+      padding:8px 10px; background:var(--soft-2);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      font-weight:700; color:#000;
+    }
+    #sidebar-content details[open] > summary{ background:#eef2f7; }
+
+    /* Rows/items inside groups (support many structures) */
+    #sidebar-content li,
+    #sidebar-content .list-item,
+    #sidebar-content .sidebar-row,
+    #sidebar-content .item{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:8px 10px; border-top:1px solid #eef2f7; background:#fff;
+      font-weight:600; color:#111827;
+    }
+    #sidebar-content li:first-child{ border-top:0; }
+
+    /* Hide “assigned” chips the map injects */
+    #sidebar-content .mini-pill,
+    #sidebar-content .badge,
+    #sidebar-content .tag,
+    #sidebar-content .status { display:none !important; }
+
+    /* “Mark done” button */
+    .bs-done-btn{
+      appearance:none; border-radius:10px; border:1px solid #e2e8f0;
+      background:#fff; color:#111827; padding:6px 10px; font-weight:800; cursor:pointer;
+      margin-top:6px;
+    }
+    .bs-done-btn.done{
+      background:#dcfce7; border-color:#bbf7d0; color:#065f46;
+    }
+
+    /* Banner above filtered list */
+    .assign-banner{
+      padding:8px 10px; margin:6px 0; border:1px solid #e2e8f0; background:#fff8f8;
+      color:#7f1d1d; border-radius:8px; font-weight:700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Firebase + auth guard -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
+  <script src="firebase-init.js" defer></script>
+  <script src="auth-guard.js" defer></script>
+
+  <!-- Sidebar toggle (hamburger) -->
+  <button id="sidebar-toggle">☰</button>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-head">
+      <img src="logo.png" alt="Bayside" onerror="this.style.display='none'" loading="lazy" decoding="async">
+      <div class="title">Assigned Parks</div>
+    </div>
+
+    <!-- Return home -->
+    <button class="wide-btn" id="homeBtn" type="button" title="Back to Dashboard">Return home</button>
+
+    <button id="toggle-all">Collapse All</button>
+    <div id="sidebar-content"></div>
+
+    <div style="padding:6px 0 14px">
+      <button class="wide-btn" onclick="adminLogin()">Admin Login</button>
+      <div id="admin-tools" style="display:none; margin-top:6px; padding:0 12px; display:grid; gap:6px">
+        <button onclick="exportPDFCouncil()" style="background:#111827">PDF report for Council</button>
+        <button onclick="exportPDFBayside()" style="background:#111827">PDF Report for Bayside</button>
+        <button onclick="clearUserData()" style="background:#64748b">Clear All User Data</button>
+        <button onclick="showToday()" style="background:#64748b">Show Completed Today</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Leaflet + your app scripts (let script.js initialise the map ONCE) -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js" defer></script>
+  <script src="script.js" defer></script>
+  <script src="sidebar.js" defer></script>
+
+  <!-- Wire return home + collapse all UI -->
+  <script>
+    (function(){
+      document.getElementById('homeBtn')?.addEventListener('click', () => {
+        try{ sessionStorage.setItem('bayside_prev', location.href); }catch(_){}
+        location.href = 'index.html';
+      });
+      document.getElementById('toggle-all')?.addEventListener('click', (e)=>{
+        const root = document.getElementById('sidebar-content');
+        const groups = [...root.querySelectorAll('details')];
+        const anyOpen = groups.some(d => d.open);
+        groups.forEach(d => d.open = !anyOpen);
+        e.target.textContent = anyOpen ? 'Expand All' : 'Collapse All';
+      });
+    })();
+  </script>
+
+  <!-- Filter sidebar to assigned IDs shown in ?focus=... -->
+  <script>
+    (function () {
+      const up = s => String(s||'').trim().toUpperCase();
+      const focus = new URLSearchParams(location.search).get('focus') || '';
+      const FOCUS = focus.split(',').map(up).filter(Boolean);
+      if (!FOCUS.length) return;
+
+      function whenSidebarReady(cb){
+        const root = document.getElementById('sidebar-content');
+        if (!root) return;
+        if (root.children.length) return cb(root);
+        const mo = new MutationObserver(() => {
+          if (root.children.length){ mo.disconnect(); cb(root); }
+        });
+        mo.observe(root, { childList: true, subtree: true });
+        setTimeout(() => mo.disconnect(), 10000);
+      }
+
+      function filterSidebar(root){
+        const want = new Set(FOCUS);
+        let banner = root.querySelector('.assign-banner');
+        if (!banner){
+          banner = document.createElement('div');
+          banner.className = 'assign-banner';
+          root.prepend(banner);
+        }
+        banner.textContent = `Showing ${FOCUS.length} assigned site(s)`;
+
+        const hasId = el => {
+          const t = (el.textContent||'').toUpperCase();
+          for (const id of want) if (t.includes(id)) return true;
+          return false;
+        };
+
+        const rows = root.querySelectorAll('li, .list-item, .sidebar-row, .item, div');
+        rows.forEach(el => {
+          if (el.classList?.contains('assign-banner')) return;
+          const keep = hasId(el) || [...el.querySelectorAll('*')].some(hasId);
+          el.style.display = keep ? '' : 'none';
+        });
+
+        root.querySelectorAll('details').forEach(d => {
+          const any = [...d.querySelectorAll('li, .list-item, .sidebar-row, .item')]
+            .some(el => el.style.display !== 'none');
+          d.style.display = any ? '' : 'none';
+          if (any) d.open = true;
+        });
+      }
+
+      whenSidebarReady(filterSidebar);
+    })();
+  </script>
+
+  <!-- Buttons + optimistic progress; persist via work_logs; also read work_logs on load -->
+  <script>
+  (function () {
+    const db   = firebase.firestore();
+    const auth = firebase.auth();
+    const params = new URLSearchParams(location.search);
+
+    let assignmentId = params.get('task') || localStorage.getItem('currentTaskId') || null;
+    if (assignmentId) { try { localStorage.setItem('currentTaskId', assignmentId); } catch(_) {} }
+
+    async function ensureTaskId(){
+      if (assignmentId) return assignmentId;
+      const q = (params.get('focus')||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+      if (!q.length) return null;
+      try{
+        const batch = q.slice(0,10);
+        const snap = await db.collection('assignments').where('siteIds','array-contains-any',batch).get();
+        let best=null,score=-1;
+        snap.forEach(doc=>{
+          const arr=(doc.data().siteIds||[]).map(x=>String(x).toUpperCase());
+          const sc=q.reduce((n,id)=>n+(arr.includes(id)?1:0),0);
+          if(sc>score){best=doc.id;score=sc;}
+        });
+        if(best){ assignmentId=best; try{localStorage.setItem('currentTaskId',best);}catch(_){} }
+      }catch(e){ /* not critical */ }
+      return assignmentId;
+    }
+
+    const idRx = /\bM\d{3,5}\b/i;
+    const up   = (s) => String(s||'').toUpperCase();
+    const rootEl = () => document.getElementById('sidebar-content') || document;
+
+    function matchIdFromNode(n){
+      if (!n) return null;
+      const m = (n.textContent||'').toUpperCase().match(idRx);
+      return m ? m[0] : null;
+    }
+    function findSiteIdForNotes(input){
+      if (input.dataset.siteId) return up(input.dataset.siteId);
+      let el = input.closest('[data-site-id], li, .list-item, .sidebar-row, .item, div');
+      for (let hops=0; el && hops<6; hops++, el=el.parentElement){
+        if (el.dataset && el.dataset.siteId){ input.dataset.siteId = up(el.dataset.siteId); return input.dataset.siteId; }
+        let m = matchIdFromNode(el); if (m){ input.dataset.siteId = m; return m; }
+        const sum = el.querySelector && el.querySelector('summary');
+        m = matchIdFromNode(sum); if (m){ input.dataset.siteId = m; return m; }
+        let p = el.previousElementSibling;
+        while (p){
+          m = matchIdFromNode(p);
+          if (m){ input.dataset.siteId = m; return m; }
+          p = p.previousElementSibling;
+        }
+      }
+      const any = matchIdFromNode(document);
+      if (any) input.dataset.siteId = any;
+      return any || null;
+    }
+
+    function hideAssignedChips(container){
+      container.querySelectorAll('.mini-pill,.badge,.tag,.status').forEach(n=>n.style.display='none');
+    }
+
+    // ---- EFFECTIVE STATE = perSite (when readable) + freshest work_logs ----
+    let perSiteCache = {};      // from assignments (if readable)
+    const latestFromLogs = {};  // sid -> {status, note, _t}
+
+    function effectiveFor(sid){
+      const base = perSiteCache[sid] || {};
+      const log  = latestFromLogs[sid] || {};
+      const pick = {};
+      pick.status = (log.status || base.status || '').toLowerCase();
+      pick.note   = (log.note   != null ? log.note   : base.note) || '';
+      return pick;
+    }
+
+    async function writeProgress(siteId, status, note){
+      const uid = auth.currentUser?.uid || null;
+      const taskId = await ensureTaskId();
+
+      // LOG (operators always allowed by your rules)
+      await db.collection('work_logs').add({
+        assignmentId: taskId || null,
+        siteId, status,
+        note: (note||'').trim(),
+        operatorUid: uid,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // ---------- injection & sync ----------
+    const siteButtons = new Map(); // siteId -> button
+    const siteInputs  = new Map(); // siteId -> notes input
+
+    // optimistic state (keep UI sticky until listeners refresh)
+    const optimistic = new Map();  // siteId -> {status, t}
+    const OPT_TTL_MS = 20000;
+
+    const setBtnUI = (btn, isDone) => {
+      btn.classList.toggle('done', !!isDone);
+      btn.textContent = isDone ? 'Undo' : 'Mark done';
+    };
+    const optSet = (sid, status) => optimistic.set(sid, { status, t: Date.now() });
+    const optGet = (sid) => {
+      const o = optimistic.get(sid);
+      if (o && (Date.now() - o.t) < OPT_TTL_MS) return o;
+      if (o) optimistic.delete(sid);
+      return null;
+    };
+
+    function injectButtons(){
+      const now  = Date.now();
+      for (const [sid, o] of optimistic) if (now - o.t > OPT_TTL_MS) optimistic.delete(sid);
+
+      const root = rootEl();
+      const notes = root.querySelectorAll('input[placeholder^="Notes"], input[placeholder="Notes..."], textarea[placeholder^="Notes"]');
+      notes.forEach(input=>{
+        const sid = findSiteIdForNotes(input);
+        if (!sid) return;
+
+        siteInputs.set(sid, input);
+
+        let btn = siteButtons.get(sid);
+        if (!btn || btn.dataset.siteId !== sid){
+          if (btn && btn.parentElement) btn.parentElement.removeChild(btn);
+
+          btn = document.createElement('button');
+          btn.type='button';
+          btn.className='bs-done-btn';
+          btn.dataset.siteId = sid;
+          btn.textContent='Mark done';
+          input.insertAdjacentElement('afterend', btn);
+          siteButtons.set(sid, btn);
+
+          btn.addEventListener('click', async (e)=>{
+            e.preventDefault(); e.stopPropagation();
+            const willBeDone = !btn.classList.contains('done');
+
+            // optimistic state + UI first
+            optSet(sid, willBeDone ? 'completed' : 'in_progress');
+            setBtnUI(btn, willBeDone);
+
+            try{
+              await writeProgress(sid, willBeDone ? 'completed' : 'in_progress', input.value||'');
+            }catch(err){
+              optimistic.delete(sid);
+              setBtnUI(btn, !willBeDone);
+              console.error('Save failed:', err);
+            }
+          });
+
+          const saveNote = async () => {
+            const opt = optGet(sid);
+            const eff = opt ? opt.status : effectiveFor(sid).status || (btn.classList.contains('done') ? 'completed' : 'in_progress');
+            try{ await writeProgress(sid, eff, input.value||''); }catch(e){ console.error(e); }
+          };
+          input.addEventListener('change', saveNote);
+          input.addEventListener('blur',   saveNote);
+        }
+
+        // reflect EFFECTIVE state -> UI (optimistic overrides freshest logs while fresh)
+        const eff = effectiveFor(sid);
+        const opt  = optGet(sid);
+        const status = (opt?.status || eff.status || '').toLowerCase();
+        const isDone = status === 'completed';
+        setBtnUI(btn, isDone);
+
+        if (typeof eff.note === 'string' && document.activeElement !== input && input.value !== eff.note) {
+          input.value = eff.note;
+        }
+
+        hideAssignedChips(input.closest('li, .list-item, .sidebar-row, .item, div') || root);
+      });
+    }
+
+    // run once, then keep tidy for a minute (in case the sidebar renders incrementally)
+    const iv = setInterval(()=>requestAnimationFrame(injectButtons), 1000);
+    setTimeout(()=>clearInterval(iv), 60000);
+    requestAnimationFrame(injectButtons);
+
+    // live snapshot of assignments (if readable) — optional
+    firebase.auth().onAuthStateChanged(async ()=>{
+      const tid = await ensureTaskId();
+      if (tid){
+        db.collection('assignments').doc(tid).onSnapshot(
+          (snap)=>{
+            perSiteCache = (snap.data()||{}).perSite || {};
+            requestAnimationFrame(injectButtons);
+          },
+          ()=>{ /* operators might not have read; that's OK */ }
+        );
+      }
+    });
+
+    // live listeners for work_logs (read only current operator's logs to satisfy rules)
+    firebase.auth().onAuthStateChanged(async (u)=>{
+      if (!u) return;
+      const uid = u.uid;
+
+      // work out which site IDs are shown
+      const params = new URLSearchParams(location.search);
+      let ids = (params.get('focus')||'')
+        .split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+      if (!ids.length) {
+        const tid = await ensureTaskId();
+        if (tid) {
+          try {
+            const s = await firebase.firestore().collection('assignments').doc(tid).get();
+            ids = (s.data()?.siteIds || []).map(x=>String(x).toUpperCase());
+          } catch {}
+        }
+      }
+      const wanted = new Set(ids);
+
+      firebase.firestore().collection('work_logs')
+        .where('operatorUid','==', uid)
+        .onSnapshot((snap)=>{
+          snap.docChanges().forEach(ch=>{
+            const w = ch.doc.data() || {};
+            const sid = String(w.siteId||'').toUpperCase();
+            if (!wanted.has(sid)) return;
+            const t = (w.timestamp?.toMillis?.() ?? w.completedAt?.toMillis?.() ?? w.updatedAt?.toMillis?.() ?? 0);
+            const cur = latestFromLogs[sid];
+            if (!cur || t > (cur._t||0)){
+              latestFromLogs[sid] = {
+                status:(w.status||'').toLowerCase(),
+                note:  (w.note||'').trim(),
+                _t:    t
+              };
+            }
+          });
+          requestAnimationFrame(injectButtons);
+        }, (err)=>{
+          console.warn('work_logs listener error:', err);
+        });
+    });
+  })();
+  </script>
+
+  <!-- Lean-map culling (hide markers out of view; if focus=..., hide non-assigned) -->
+  <script>
+    (function(){
+      const idRx = /\bM\d{3,5}\b/i;
+      const up = s => String(s||'').trim().toUpperCase();
+      const focus = new URLSearchParams(location.search).get('focus') || '';
+      const FOCUS_SET = new Set(focus.split(',').map(up).filter(Boolean));
+
+      function getMap(){
+        const candidates = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
+        return candidates.find(m => m && typeof m.getBounds === 'function' && typeof m.on === 'function') || null;
+      }
+      function siteIdFromMarker(m){
+        if (!m) return null;
+        if (m.options && m.options.siteId) return up(m.options.siteId);
+        if (m.options && m.options.title){
+          const mm = String(m.options.title).toUpperCase().match(idRx);
+          if (mm) return mm[0];
+        }
+        if (typeof m.getTooltip === 'function' && m.getTooltip()){
+          const txt = m.getTooltip().getContent();
+          const mm = String(txt||'').toUpperCase().match(idRx);
+          if (mm) return mm[0];
+        }
+        const txt = (m._icon && m._icon.textContent) ? m._icon.textContent : '';
+        const mm = String(txt||'').toUpperCase().match(idRx);
+        return mm ? mm[0] : null;
+      }
+      function setMarkerVisible(m, on){
+        if (m._icon)  m._icon.style.display = on ? '' : 'none';
+        if (m._shadow) m._shadow.style.display = on ? '' : 'none';
+      }
+
+      function startWhenReady(){
+        const map = getMap();
+        if (!map) { setTimeout(startWhenReady, 300); return; }
+
+        let raf = 0;
+        const refresh = () => {
+          if (raf) cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => {
+            const pad = map.getBounds().pad(0.2);
+            for (const k in map._layers){
+              const layer = map._layers[k];
+              if (!(layer instanceof L.Marker)) continue;
+              const inView = pad.contains(layer.getLatLng());
+              if (FOCUS_SET.size){
+                const sid = siteIdFromMarker(layer);
+                const isAssigned = !!(sid && FOCUS_SET.has(sid));
+                setMarkerVisible(layer, inView && isAssigned);
+              } else {
+                setMarkerVisible(layer, inView);
+              }
+            }
+          });
+        };
+
+        map.on('moveend zoomend', refresh);
+        setTimeout(refresh, 0);
+
+        const tidyUntil = Date.now() + 8000;
+        const iv = setInterval(() => {
+          refresh();
+          if (Date.now() > tidyUntil) clearInterval(iv);
+        }, 600);
+      }
+
+      startWhenReady();
+    })();
+  </script>
+
+  <!-- Race-proof AUTOLOCK to assigned area (fit & lock once, expand-only later) -->
+  <script>
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const forceLock = params.get('autolock') === '1';
+      const forceUnlock = params.get('unlock') === '1';
+      const up = s => String(s||'').trim().toUpperCase();
+      const focusSet = new Set((params.get('focus')||'').split(',').map(up).filter(Boolean));
+      const idRx = /\bM\d{3,5}\b/i;
+
+      let isAdmin = false; // best-effort admin detection (operators autolock by default)
+      try {
+        firebase.auth().onAuthStateChanged(async (u)=>{
+          if (!u) return;
+          try {
+            const snap = await firebase.firestore().collection('users').doc(u.uid).get();
+            isAdmin = (snap.data()?.role === 'admin');
+          } catch {}
+        });
+      } catch {}
+
+      function getMap(){
+        const candidates = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
+        return candidates.find(m => m && typeof m.getBounds === 'function' && typeof m.on === 'function') || null;
+      }
+      function siteIdFromMarker(m){
+        if (!m) return null;
+        if (m.options && m.options.siteId) return up(m.options.siteId);
+        if (m.options && m.options.title){
+          const mm = String(m.options.title).toUpperCase().match(idRx);
+          if (mm) return mm[0];
+        }
+        if (typeof m.getTooltip === 'function' && m.getTooltip()){
+          const txt = m.getTooltip().getContent();
+          const mm = String(txt||'').toUpperCase().match(idRx);
+          if (mm) return mm[0];
+        }
+        const txt = (m._icon && m._icon.textContent) ? m._icon.textContent : '';
+        const mm = String(txt||'').toUpperCase().match(idRx);
+        return mm ? mm[0] : null;
+      }
+      function assignedBounds(map){
+        let b = null;
+        for (const k in map._layers){
+          const lyr = map._layers[k];
+          if (!(lyr instanceof L.Marker)) continue;
+          const sid = siteIdFromMarker(lyr);
+          if (focusSet.size && (!sid || !focusSet.has(sid))) continue;
+          const ll = lyr.getLatLng();
+          if (!ll) continue;
+          b = b ? b.extend(ll) : L.latLngBounds(ll, ll);
+        }
+        return b;
+      }
+
+      function shouldAutoLock(){
+        if (forceUnlock) return false;
+        if (forceLock) return true;
+        if (focusSet.size > 0 && !isAdmin) return true;
+        return false;
+      }
+
+      function startWhenReady(){
+        const map = getMap();
+        if (!map) { setTimeout(startWhenReady, 300); return; }
+        if (!shouldAutoLock()) return;
+
+        let locked = false;
+        let maxB = null;
+
+        function tryLock(){
+          const b = assignedBounds(map);
+          if (!b) return false;
+          maxB = b.pad(0.15);
+          try { map.fitBounds(maxB, { padding:[24,24] }); } catch(e) {}
+          map.setMaxBounds(maxB);
+          map.options.maxBoundsViscosity = 1.0;
+          locked = true;
+          return true;
+        }
+        function maybeExpand(){
+          if (!locked || !maxB) return;
+          const b = assignedBounds(map);
+          if (b && !maxB.contains(b)){
+            maxB = b.pad(0.15);
+            map.setMaxBounds(maxB);
+          }
+        }
+
+        // Retry a few times while markers stream in
+        let tries = 0;
+        const iv = setInterval(()=>{
+          tries++;
+          if (tryLock() || tries >= 20) clearInterval(iv); // ~10s max
+        }, 500);
+
+        // Expand-only pass for a short period
+        const until = Date.now() + 8000;
+        const tidier = setInterval(()=>{
+          maybeExpand();
+          if (Date.now() > until) clearInterval(tidier);
+        }, 600);
+      }
+
+      // Kick off after scripts & (most) layers are in
+      setTimeout(startWhenReady, 400);
+      setTimeout(startWhenReady, 2000); // safety
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bayside — Sign in</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap&display=swap" rel="stylesheet">
+
+  <style>
+    :root{ --ink:#0f172a; --ink-2:#111827; --muted:#e5e7eb; --bg:#f6f7fb; --card:#ffffff; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .panel{ width:min(880px,100%); background:var(--card); border:1px solid var(--muted);
+      border-radius:18px; box-shadow:0 20px 48px rgba(16,24,40,.12); padding:22px 22px 26px; }
+    .panel-head{ display:flex; align-items:center; gap:14px; margin-bottom:12px;}
+    .panel-head img{ height:64px; display:block }
+    .panel-title{ font-size:22px; font-weight:800 }
+    .tabs{ display:flex; gap:10px; margin:10px 0 16px;}
+    .tab{ flex:1; padding:12px 10px; text-align:center; font-weight:800; border-radius:12px;
+      border:1px solid var(--muted); background:#f8fafc; color:#334155; cursor:pointer; user-select:none; }
+    .tab.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+    .form{ margin-top:6px; display:flex; flex-direction:column; align-items:center; gap:12px;}
+    .row{ width:100%; display:flex; justify-content:center }
+    .half{ width:min(440px,92%); display:flex; flex-direction:column; gap:6px;}
+    label{ font-size:13px; color:#475569; font-weight:700 }
+    input{ width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--muted);
+      font-size:15px; background:#fff; }
+    input:focus{ outline:3px solid #e6f0ff; border-color:#94a3b8 }
+    .submit{ width:min(440px,92%); border:0; border-radius:12px; padding:12px 14px; font-weight:800;
+      cursor:pointer; color:#fff; background:#0f172a; margin-top:4px; }
+    .submit:hover{ background:#1f2937 }
+    .hint{ text-align:center; color:#64748b; font-size:13px; margin-top:2px }
+    .hidden{ display:none !important; }
+    @media (max-width:520px){ .panel{padding:18px 16px 22px} .panel-head img{height:56px} .panel-title{font-size:20px} }
+  </style>
+</head>
+<body>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
+  <script src="firebase-init.js" defer></script>
+  <script src="auth-guard.js" defer></script>
+  
+  <main class="panel">
+    <div class="panel-head">
+      <img src="logo.png" alt="Bayside logo" onerror="this.style.display='none'" loading="lazy" decoding="async">
+      <div class="panel-title">Sign in</div>
+    </div>
+
+    <div class="tabs">
+      <div id="tabOperator" class="tab active">Operator</div>
+      <div id="tabAdmin" class="tab">Admin</div>
+    </div>
+
+    <!-- Operator form -->
+    <form id="formOperator" class="form" autocomplete="on">
+      <div class="row"><div class="half">
+        <label for="op_user">Username</label>
+        <input id="op_user" placeholder="e.g., riley" autocomplete="username">
+      </div></div>
+      <div class="row"><div class="half">
+        <label for="op_pass">Password</label>
+        <input id="op_pass" type="password" placeholder="Your password" autocomplete="current-password" minlength="6" required>
+      </div></div>
+      <button class="submit" type="submit">Sign in</button>
+      <div class="hint">Operators sign in with <b>username + password</b>.</div>
+    </form>
+
+    <!-- Admin form -->
+    <form id="formAdmin" class="form hidden" autocomplete="on">
+      <div class="row"><div class="half">
+        <label for="ad_email">Email</label>
+        <input id="ad_email" type="email" placeholder="you@company.com" autocomplete="email">
+      </div></div>
+      <div class="row"><div class="half">
+        <label for="ad_pass">Password</label>
+        <input id="ad_pass" type="password" placeholder="Your password" autocomplete="current-password" minlength="6" required>
+      </div></div>
+      <button class="submit" type="submit">Sign in</button>
+      <div class="hint">Admins sign in with <b>email + password</b>.</div>
+    </form>
+  </main>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
+  <script src="firebase-init.js" defer></script>
+
+  <script>
+    // Username -> synthetic email mapping for Operators
+    // Must match OP_DOMAIN in Cloud Function adminCreateUser
+    const OP_DOMAIN = 'operators.bayside-maps.local';
+    function toIdentifier(raw){
+      const t = String(raw || '').trim();
+      return t.includes('@') ? t : `${t}@${OP_DOMAIN}`;
+    }
+
+    // Tabs
+    const tabOp = document.getElementById('tabOperator');
+    const tabAd = document.getElementById('tabAdmin');
+    const formOp = document.getElementById('formOperator');
+    const formAd = document.getElementById('formAdmin');
+    function show(opMode){
+      if(opMode){ tabOp.classList.add('active'); tabAd.classList.remove('active'); formOp.classList.remove('hidden'); formAd.classList.add('hidden'); }
+      else { tabAd.classList.add('active'); tabOp.classList.remove('active'); formAd.classList.remove('hidden'); formOp.classList.add('hidden'); }
+    }
+    tabOp.addEventListener('click', ()=>show(true));
+    tabAd.addEventListener('click', ()=>show(false));
+
+    // Operator → index.html
+    formOp.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const u = document.getElementById('op_user').value.trim().toLowerCase();
+      const p = document.getElementById('op_pass').value;
+      if(!u || !p){ alert('Enter username and password'); return; }
+
+      const identifier = toIdentifier(u); // username -> synthetic email
+      try{
+        await firebase.auth().signInWithEmailAndPassword(identifier, p);
+        window.location.replace('index.html');
+      }catch(err){
+        console.warn(err); alert(err.message || 'Sign in failed');
+      }
+    });
+
+    // Admin → admin.html
+    formAd.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = document.getElementById('ad_email').value.trim();
+      const pass  = document.getElementById('ad_pass').value;
+      if(!email || !pass){ alert('Enter email and password'); return; }
+
+      try {
+        sessionStorage.setItem('bayside_next', 'admin.html');
+        localStorage.setItem('bayside_next', 'admin.html');
+      } catch(_) {}
+
+      try{
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+        window.location.replace('admin.html');
+      }catch(err){
+        console.warn(err); alert(err.message || 'Sign in failed');
+      }
+    });
+  </script>
+</body>
+</html>

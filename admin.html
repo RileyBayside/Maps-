@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bayside — Dashboard</title>
+
+  <!-- Type -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --ink:#0f172a; --ink-2:#111827; --muted:#e5e7eb; --bg:#f6f7fb; --card:#ffffff;
+      --accent:#d11e2b; --accent-600:#b71a24; --focus:#e6f0ff;
+      --danger:#ef4444; --danger-600:#dc2626; --ok:#16a34a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{ margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
+
+    /* Header */
+    .header{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 22px; background:#fff; border-bottom:1px solid var(--muted); position:sticky; top:0; z-index:10 }
+    .brand{ display:flex; align-items:center; gap:14px; min-width:0 }
+    .brand img{ height:56px; display:block }
+    .brand .title{ font-size:22px; font-weight:800; color:var(--ink-2); letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .userbox{ display:flex; align-items:center; gap:12px; flex-wrap:wrap }
+    .email{ font-weight:600; color:#334155; background:#f1f5f9; border:1px solid #e2e8f0; padding:8px 10px; border-radius:10px; max-width:52vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .btn{ border:0; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer; color:#fff; background:var(--ink) }
+    .btn:hover{ background:#1f2937 }
+
+    /* Layout */
+    .container{ max-width:1120px; margin:24px auto; padding:0 16px }
+    .section-title{ font-size:18px; font-weight:800; margin:10px 2px 12px; color:var(--ink-2) }
+    .card{ background:var(--card); border:1px solid var(--muted); border-radius:16px; box-shadow:0 8px 26px rgba(16,24,40,.08) }
+
+    /* Admin tools */
+    .tools{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px }
+    .tool{ padding:16px; display:flex; flex-direction:column; gap:8px }
+    .tool h3{ margin:0; font-size:15px; font-weight:800 }
+    .tool p{ margin:0 0 8px; color:#475569 }
+    .actions{ display:flex; flex-wrap:wrap; gap:10px }
+    .action{ display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border-radius:10px; font-weight:800; text-decoration:none; color:#fff; background:var(--accent) }
+    .action:hover{ background:var(--accent-600) }
+
+    /* Work cards */
+    .cards-row{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px }
+    .work-card{ text-decoration:none; color:inherit; background:#fff; border:1px solid var(--muted); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 8px 26px rgba(16,24,40,.08) }
+    .work-card__img img{ width:100%; height:220px; object-fit:cover; background:#e2e8f0; display:block }
+    .work-card__footer{ padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px }
+    .work-card__title{ font-weight:800; font-size:16px; color:var(--ink-2) }
+    .btn-dark{ background:var(--ink); color:#fff; padding:9px 12px; border-radius:10px; font-weight:800 }
+
+    /* Modal */
+    .hidden{ display:none !important }
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,.48); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50 }
+    .modal{ width:min(840px,92vw); max-height:86vh; overflow:auto; background:#fff; border:1px solid var(--muted); border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.25) }
+    .modal header{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px; border-bottom:1px solid var(--muted) }
+    .modal h3{ margin:0; font-size:16px; font-weight:800; color:var(--ink-2) }
+    .modal .close{ border:0; background:#f1f5f9; border:1px solid #e2e8f0; color:#111827; border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer }
+    .modal .close:hover{ background:#e5e7eb }
+    .modal .body{ padding:12px 16px 16px; display:grid; gap:12px }
+    .modal .toolbar{ display:flex; gap:10px; align-items:center }
+    .modal .toolbar input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid var(--muted); font-size:14px }
+    .modal .toolbar input:focus{ outline:3px solid var(--focus); border-color:#94a3b8 }
+    .op-list{ display:grid; gap:8px }
+    .op-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:12px; background:#fff }
+    .op-main{ min-width:0 }
+    .op-name{ font-weight:800; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .op-meta{ color:#64748b; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .op-actions{ display:flex; gap:8px }
+    .btn-small{ border:0; border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer; color:#fff; background:var(--ink) }
+    .btn-small:hover{ background:#1f2937 }
+    .btn-warn{ background:var(--danger) }
+    .btn-warn:hover{ background:var(--danger-600) }
+    .btn-ok{ background:var(--ok) }
+    .pill{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800; background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca; margin-left:8px }
+
+    /* Responsive */
+    @media (max-width:980px){ .tools{ grid-template-columns:1fr } .cards-row{ grid-template-columns:1fr 1fr } }
+    @media (max-width:640px){ .cards-row{ grid-template-columns:1fr } .brand .title{ display:none } }
+  </style>
+
+  <!-- Firebase scripts (LOAD ONCE) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
+  <script src="firebase-init.js" defer></script>
+  <script src="auth-guard.js" defer></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <img src="logo.png" alt="Bayside logo" onerror="this.style.display='none'" loading="lazy" decoding="async">
+      <div class="title">Dashboard</div>
+    </div>
+    <div class="userbox">
+      <div id="userEmail" class="email">—</div>
+      <button id="logoutBtn" class="btn" type="button">Logout</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Admin tools -->
+    <h2 class="section-title">Admin tools</h2>
+    <section class="tools">
+      <div class="card tool">
+        <!-- RENAMED -->
+        <h3>Users</h3>
+        <p>Create operator accounts and set display names.</p>
+        <div class="actions">
+          <a class="action" href="create-user.html">Create operator</a>
+          <a class="action" href="admin.html#disable" id="manageUsersLink">Disable / delete</a>
+          <!-- NEW BUTTON -->
+          <a class="action" href="risk-assessments.html">Open Risk Assessments</a>
+        </div>
+      </div>
+
+      <div class="card tool">
+        <h3>Delegate work</h3>
+        <p>Assign parks or zones to operators (e.g., Zone 1, Parks 1–50).</p>
+        <div class="actions">
+          <a class="action" href="delegate.html">Delegate Work</a>
+          <a class="action" href="assignments.html">View assignments</a>
+        </div>
+      </div>
+
+      <div class="card tool">
+        <h3>Generate reports</h3>
+        <p>Build PDFs (same options as your sidebar PDF actions).</p>
+        <div class="actions">
+          <!-- changed: these now trigger Parks* pages with ?autopdf=bayside -->
+          <a class="action" href="#" role="button" onclick="openSidebarReport('bayside','mowing')">Mowing PDF</a>
+          <a class="action" href="#" role="button" onclick="openSidebarReport('bayside','snipping')">Snipping PDF</a>
+          <a class="action" href="#" role="button" onclick="openSidebarReport('bayside','firebreaks')">Firebreaks PDF</a>
+          <a class="action" href="reports.html?type=daily">Daily summary</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">Work areas</h2>
+
+      <div class="cards-row">
+        <a href="./ParksMowing.html" class="work-card">
+          <div class="work-card__img"><picture><source srcset="MOWING PICTURE.webp" type="image/webp"><img src="MOWING PICTURE.png" alt="Parks Mowing map" / loading="lazy" decoding="async" alt="Parks Mowing map"></picture></div>
+          <div class="work-card__footer"><span class="work-card__title">Parks Mowing</span><span class="btn-dark">Open</span></div>
+        </a>
+
+        <a href="./ParksSnipping.html" class="work-card">
+          <div class="work-card__img"><picture><source srcset="SNIPPING PICTURE.webp" type="image/webp"><img src="SNIPPING PICTURE.png" alt="Parks Snipping map" / loading="lazy" decoding="async" alt="Parks Snipping map"></picture></div>
+          <div class="work-card__footer"><span class="work-card__title">Parks Snipping</span><span class="btn-dark">Open</span></div>
+        </a>
+
+        <a href="./Firebreaks.html" class="work-card">
+          <div class="work-card__img"><picture><source srcset="FIREBREAKS PICTURE.webp" type="image/webp"><img src="FIREBREAKS PICTURE.png" alt="Firebreaks map" / loading="lazy" decoding="async" alt="Firebreaks map"></picture></div>
+          <div class="work-card__footer"><span class="work-card__title">Firebreaks</span><span class="btn-dark">Open</span></div>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Manage operators -->
+  <div id="userModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+    <div class="modal">
+      <header>
+        <h3 id="userModalTitle">Manage operators</h3>
+        <button class="close" type="button" id="modalCloseBtn">Close</button>
+      </header>
+      <div class="body">
+        <div class="toolbar">
+          <input id="opSearch" placeholder="Search by name or email…"/>
+          <span id="opCount" style="color:#64748b;font-weight:700"></span>
+        </div>
+        <div id="opList" class="op-list"></div>
+        <small style="color:#64748b">
+          <b>Note:</b> “Disable” sets a flag in Firestore; “Delete” marks the doc as deleted.
+          Removing the Auth account requires the Admin SDK (Cloud Function).
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Basic header auth UI
+    (function(){
+      const emailEl = document.getElementById('userEmail');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      firebase.auth().onAuthStateChanged(user=>{
+        if(!user){ window.location.href = 'login.html'; return; }
+        emailEl.textContent = user.email || 'Signed in';
+      });
+
+      logoutBtn.addEventListener('click', async ()=>{
+        try{ await firebase.auth().signOut(); window.location.href = 'login.html'; }
+        catch(e){ console.warn(e); alert('Logout failed. Please try again.'); }
+      });
+    })();
+  </script>
+
+  <script>
+    // Disable / Delete modal logic
+    (function(){
+      if (!firebase.firestore) {
+        console.warn('Firestore not loaded');
+        return;
+      }
+      const db = firebase.firestore();
+
+      const userModal   = document.getElementById('userModal');
+      const manageLink  = document.getElementById('manageUsersLink');
+      const modalClose  = document.getElementById('modalCloseBtn');
+      const opList      = document.getElementById('opList');
+      const opSearch    = document.getElementById('opSearch');
+      const opCount     = document.getElementById('opCount');
+
+      let allOps = [];
+
+      function openModal(){ userModal.classList.remove('hidden'); loadOperators(); }
+      function closeModal(){ userModal.classList.add('hidden'); }
+
+      manageLink?.addEventListener('click', (e)=>{ e.preventDefault(); openModal(); });
+      modalClose?.addEventListener('click', closeModal);
+      userModal?.addEventListener('click', (e)=>{ if (e.target === userModal) closeModal(); });
+
+      if (location.hash === '#disable') openModal();
+
+      opSearch?.addEventListener('input', ()=> renderList(opSearch.value));
+
+      async function loadOperators(){
+        try{
+          const snap = await db.collection('users').where('role','==','operator').get();
+          const rows = [];
+          snap.forEach(doc=>{
+            const d = doc.data() || {};
+            rows.push({
+              uid: doc.id, name: d.name || '', username: d.username || '',
+              email: d.email || '', disabled: !!d.disabled, deleted: !!d.deleted
+            });
+          });
+          allOps = rows;
+          renderList(opSearch.value);
+        }catch(err){
+          opList.innerHTML = '<p style="color:#b91c1c;font-weight:700">Failed to load operators.</p>';
+          console.warn('loadOperators error:', err);
+        }
+      }
+
+      function renderList(filter=''){
+        const q = (filter||'').trim().toLowerCase();
+        opList.innerHTML = '';
+        const list = allOps
+          .filter(u => !u.deleted)
+          .filter(u => !q ||
+            (u.name && u.name.toLowerCase().includes(q)) ||
+            (u.username && u.username.toLowerCase().includes(q)) ||
+            (u.email && u.email.toLowerCase().includes(q))
+          )
+          .sort((a,b)=>{
+            const an = (a.name || a.username || a.email || '').toLowerCase();
+            const bn = (b.name || b.username || b.email || '').toLowerCase();
+            return an.localeCompare(bn);
+          });
+
+        opCount.textContent = list.length ? `${list.length} operator${list.length>1?'s':''}` : 'No operators';
+
+        list.forEach(u=>{
+          const row = document.createElement('div');
+          row.className = 'op-row';
+
+          const main = document.createElement('div');
+          main.className = 'op-main';
+          const title = document.createElement('div');
+          title.className = 'op-name';
+          title.textContent = u.name || u.username || u.email || u.uid || 'Unknown';
+          if (u.disabled) { const pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = 'Disabled'; title.appendChild(pill); }
+          const meta = document.createElement('div');
+          meta.className = 'op-meta';
+          meta.textContent = u.email || '';
+          main.appendChild(title); main.appendChild(meta);
+
+          const actions = document.createElement('div');
+          actions.className = 'op-actions';
+
+          const disBtn = document.createElement('button');
+          disBtn.className = 'btn-small ' + (u.disabled ? 'btn-ok' : '');
+          disBtn.textContent = u.disabled ? 'Enable' : 'Disable';
+          disBtn.addEventListener('click', async ()=>{
+            try{
+              await db.collection('users').doc(u.uid).set({ disabled: !u.disabled, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+              u.disabled = !u.disabled; renderList(opSearch.value);
+            }catch(err){ alert('Failed to update: ' + (err.message || err.code || err)); }
+          });
+          actions.appendChild(disBtn);
+
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-small btn-warn';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', async ()=>{
+            const first = confirm(`Delete ${u.name || u.username || u.email || 'this user'}?\n\nThis will mark them as deleted and disabled in Firestore.`);
+            if (!first) return;
+            const second = confirm('Are you sure? This action cannot be undone here.');
+            if (!second) return;
+            try{
+              await db.collection('users').doc(u.uid).set({
+                deleted: true, disabled: true, deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+              }, { merge:true });
+              u.deleted = true; renderList(opSearch.value);
+            }catch(err){ alert('Failed to delete: ' + (err.message || err.code || err)); }
+          });
+          actions.appendChild(delBtn);
+
+          row.appendChild(main); row.appendChild(actions);
+          opList.appendChild(row);
+        });
+
+        if (!list.length){
+          const p = document.createElement('p'); p.style.color = '#64748b'; p.textContent = 'No operators match your search.'; p.style.margin = '6px 0 0'; opList.appendChild(p);
+        }
+      }
+    })();
+  </script>
+
+  <!-- NEW: helper to open Parks* pages and auto-run the sidebar PDF -->
+  <script>
+    /**
+     * Open the correct map page with ?autopdf=<kind> so its sidebar.js
+     * generates the PDF automatically.
+     *
+     * @param {'bayside'|'council'} kind
+     * @param {'mowing'|'snipping'|'firebreaks'} area
+     */
+    function openSidebarReport(kind = 'bayside', area = 'mowing'){
+      const byArea = {
+        mowing:    ["ParksMowing.html", "parksmowing.html"],
+        snipping:  ["ParksSnipping.html", "parkssnipping.html"],
+        firebreaks:["Firebreaks.html", "firebreaks.html"]
+      };
+      const candidates = byArea[area] || byArea.mowing;
+      const qs = `?autopdf=${encodeURIComponent(kind)}`;
+
+      (async () => {
+        for (const f of candidates){
+          try {
+            const res = await fetch(f, { method: 'HEAD' });
+            if (res.ok) {
+              window.open(`${f}${qs}`, '_blank', 'noopener');
+              return;
+            }
+          } catch (_) { /* try next */ }
+        }
+        alert("Couldn't find the target page. Check the filename/casing or adjust the helper.");
+      })();
+    }
+  </script>
+</body>
+</html>

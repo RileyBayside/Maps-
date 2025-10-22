@@ -1,7 +1,6 @@
-/* Sidebar container */
 #sidebar {
   position: absolute;
-  top: 110px;
+  top: 110px; /* safely below search/zoom controls */
   left: 0;
   width: 300px;
   height: calc(100% - 110px);
@@ -11,40 +10,74 @@
   border-right: 1px solid #ccc;
   padding: 10px;
   transition: transform 0.3s ease;
-
-  /* ✅ Keep text left-aligned for consistent columns */
-  text-align: left;
+  text-align: center; /* ✅ Center all text */
 }
 
-/* Zone headers centered for readability */
+#sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+#sidebar-toggle {
+  position: absolute;
+  top: 10px;
+  left: 310px;
+  z-index: 1100;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.zone h3 {
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+#sidebar button {
+  display: block;
+  margin: 10px auto; /* ✅ Center buttons */
+}
+
+/* ✅ Make park numbers look like hyperlinks */
+.park-link {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  display: block;
+  margin: 6px 0;
+}
+.park-link:hover {
+  color: #0056b3;
+}
+
+/* Hide collapsed zones */
+.hidden { display: none; }
+
+
+/* --- Sidebar alignment fixes --- */
 .zone h3 {
   text-align: center;
   margin: 10px 0;
   font-weight: bold;
 }
 
-/* Each park item neatly aligned */
 .park-item {
   display: flex;
   flex-direction: column;
-  align-items: stretch;  /* ✅ Makes checkbox, label, and notes line up */
+  align-items: stretch;
   margin-bottom: 6px;
 }
 
-/* Row with checkbox + label aligned */
 .park-item > div {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-/* Notes box fills width under each label */
 .park-item input[type="text"] {
   margin-top: 3px;
   width: 100%;
   box-sizing: border-box;
-}
-
-#sidebar a {
-  text-align: center;
 }

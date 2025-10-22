@@ -1,8 +1,5 @@
 // Initialize the map
-var map = L.map('map', {
-    center: [-27.55, 153.25],
-    zoom: 12
-});
+var map = L.map('map', {maxBounds: [[-28.0, 152.0], [-26.5, 154.2]], maxBoundsViscosity: 1.0, preferCanvas: true, '});
 
 // Google Hybrid basemap
 L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
@@ -67,7 +64,7 @@ function onEachFeature(feature, layer) {
 }
 
 // Load Firebreaks
-fetch('FFZ.geojson')
+fetch('FFZ.rounded.min.geojson')
     .then(res => res.json())
     .then(data => {
         var fb = L.geoJSON(data, {

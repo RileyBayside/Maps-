@@ -3,359 +3,596 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bayside — Dashboard</title>
+  <title>Bayside — Admin</title>
 
-  <!-- Type -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- Fonts & shared styles -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css" />
 
   <style>
     :root{
-      --ink:#0f172a; --ink-2:#111827; --muted:#e5e7eb; --bg:#f6f7fb; --card:#ffffff;
-      --accent:#d11e2b; --accent-600:#b71a24; --focus:#e6f0ff;
-      --danger:#ef4444; --danger-600:#dc2626; --ok:#16a34a;
+      --ink:#0f172a; --ink2:#111827; --muted:#e5e7eb; --bg:#f6f7fb; --card:#fff;
+      --accent:#d11e2b; --accent-600:#b71a24; --soft:#f8fafc;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{ margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
+    body{ margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
 
-    /* Header */
-    .header{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 22px; background:#fff; border-bottom:1px solid var(--muted); position:sticky; top:0; z-index:10 }
-    .brand{ display:flex; align-items:center; gap:14px; min-width:0 }
-    .brand img{ height:56px; display:block }
-    .brand .title{ font-size:22px; font-weight:800; color:var(--ink-2); letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-    .userbox{ display:flex; align-items:center; gap:12px; flex-wrap:wrap }
-    .email{ font-weight:600; color:#334155; background:#f1f5f9; border:1px solid #e2e8f0; padding:8px 10px; border-radius:10px; max-width:52vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-    .btn{ border:0; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer; color:#fff; background:var(--ink) }
-    .btn:hover{ background:#1f2937 }
+    /* App bar */
+    .appbar{ position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 20px; background:#fff; border-bottom:1px solid var(--muted); }
+    .appbar__left{ display:flex; align-items:center; gap:12px }
+    .logo{ height:44px; width:auto }
+    .appbar__title{ font-size:22px; font-weight:800; color:#111827 }
+    .appbar__right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+    .user-pill{ font-weight:600; color:#334155; background:#f1f5f9; border:1px solid #e2e8f0; padding:8px 10px; border-radius:10px; }
+    .btn{ border:0; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer; }
+    .btn-outline{ background:#fff; color:#111827; border:1px solid #cbd5e1 }
+    .btn-dark{ background:#111827; color:#fff }
+    .btn-accent{ background:var(--accent); color:#fff }
+    .btn-accent:hover{ background:var(--accent-600) }
 
-    /* Layout */
-    .container{ max-width:1120px; margin:24px auto; padding:0 16px }
-    .section-title{ font-size:18px; font-weight:800; margin:10px 2px 12px; color:var(--ink-2) }
-    .card{ background:var(--card); border:1px solid var(--muted); border-radius:16px; box-shadow:0 8px 26px rgba(16,24,40,.08) }
+    .container{ max-width:1200px; margin: 22px auto 48px; padding: 0 16px }
 
-    /* Admin tools */
-    .tools{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px }
-    .tool{ padding:16px; display:flex; flex-direction:column; gap:8px }
-    .tool h3{ margin:0; font-size:15px; font-weight:800 }
-    .tool p{ margin:0 0 8px; color:#475569 }
-    .actions{ display:flex; flex-wrap:wrap; gap:10px }
-    .action{ display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border-radius:10px; font-weight:800; text-decoration:none; color:#fff; background:var(--accent) }
-    .action:hover{ background:var(--accent-600) }
+    /* Admin tool cards */
+    .admin-grid{
+      display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:22px;
+    }
+    @media (max-width:1024px){ .admin-grid{ grid-template-columns: 1fr; } }
 
-    /* Work cards */
+    .card{ background:var(--card); border:1px solid var(--muted); border-radius:16px; box-shadow:0 8px 26px rgba(16,24,40,.08); }
+    .card__head{ padding:14px 16px; border-bottom:1px solid var(--muted); font-weight:800; color:#0f172a }
+    .card__body{ padding:14px 16px; display:grid; gap:10px }
+    .row{ display:flex; gap:10px; flex-wrap:wrap }
+    .row .btn{ padding:8px 12px; border-radius:10px }
+
+    /* Work area cards */
+    .section-title{ font-size:18px; font-weight:800; margin:10px 2px 14px; color:#111827 }
     .cards-row{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px }
-    .work-card{ text-decoration:none; color:inherit; background:#fff; border:1px solid var(--muted); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 8px 26px rgba(16,24,40,.08) }
-    .work-card__img img{ width:100%; height:220px; object-fit:cover; background:#e2e8f0; display:block }
-    .work-card__footer{ padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px }
-    .work-card__title{ font-weight:800; font-size:16px; color:var(--ink-2) }
-    .btn-dark{ background:var(--ink); color:#fff; padding:9px 12px; border-radius:10px; font-weight:800 }
+    @media (max-width:1024px){ .cards-row{ grid-template-columns: 1fr } }
+    .work-card{ display:flex; flex-direction:column; background:#fff; border:1px solid var(--muted); border-radius:16px; overflow:hidden; text-decoration:none; color:inherit; box-shadow:0 8px 26px rgba(16,24,40,.06); }
+    .work-card__img{ aspect-ratio: 16/9; display:flex; align-items:center; justify-content:center; overflow:hidden }
+    .work-card__img img{ width:100%; height:100%; object-fit:cover }
+    .work-card__footer{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px }
+    .work-card__title{ font-weight:800; color:#111827 }
 
     /* Modal */
-    .hidden{ display:none !important }
-    .modal-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,.48); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50 }
-    .modal{ width:min(840px,92vw); max-height:86vh; overflow:auto; background:#fff; border:1px solid var(--muted); border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.25) }
-    .modal header{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px; border-bottom:1px solid var(--muted) }
-    .modal h3{ margin:0; font-size:16px; font-weight:800; color:var(--ink-2) }
-    .modal .close{ border:0; background:#f1f5f9; border:1px solid #e2e8f0; color:#111827; border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer }
-    .modal .close:hover{ background:#e5e7eb }
-    .modal .body{ padding:12px 16px 16px; display:grid; gap:12px }
-    .modal .toolbar{ display:flex; gap:10px; align-items:center }
-    .modal .toolbar input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid var(--muted); font-size:14px }
-    .modal .toolbar input:focus{ outline:3px solid var(--focus); border-color:#94a3b8 }
-    .op-list{ display:grid; gap:8px }
-    .op-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:12px; background:#fff }
-    .op-main{ min-width:0 }
-    .op-name{ font-weight:800; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-    .op-meta{ color:#64748b; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-    .op-actions{ display:flex; gap:8px }
-    .btn-small{ border:0; border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer; color:#fff; background:var(--ink) }
-    .btn-small:hover{ background:#1f2937 }
-    .btn-warn{ background:var(--danger) }
-    .btn-warn:hover{ background:var(--danger-600) }
-    .btn-ok{ background:var(--ok) }
-    .pill{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800; background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca; margin-left:8px }
-
-    /* Responsive */
-    @media (max-width:980px){ .tools{ grid-template-columns:1fr } .cards-row{ grid-template-columns:1fr 1fr } }
-    @media (max-width:640px){ .cards-row{ grid-template-columns:1fr } .brand .title{ display:none } }
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,.55); display:none; z-index:50; }
+    .modal{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:min(1000px,92vw); background:#fff; border-radius:16px; border:1px solid var(--muted); box-shadow:0 25px 70px rgba(2,8,23,.25); display:none; z-index:51; }
+    .modal__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--muted); }
+    .modal__title{ font-weight:800; }
+    .modal__body{ padding:16px; max-height:min(70vh, 760px); overflow:auto; }
+    .modal__foot{ padding:12px 16px; border-top:1px solid var(--muted); display:flex; justify-content:flex-end; gap:10px }
+    .iconbtn{ background:#fff; border:1px solid #cbd5e1; border-radius:10px; padding:8px 10px; cursor:pointer; }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ border:1px solid #e2e8f0; padding:10px 12px; text-align:left; }
+    th{ background:#f8fafc; }
+    .badge{ font-size:12px; background:#eef2ff; color:#3730a3; padding:4px 8px; border-radius:999px; border:1px solid #e0e7ff }
+    .badge.active{ background:#ecfeff; color:#155e75; border-color:#cffafe }
+    .note{ background:#f1f5f9; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px; color:#334155; margin-bottom:10px }
+    .ok{ color:#166534 } .err{ color:#b91c1c }
+    input[type="search"]{ width:280px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:10px; }
   </style>
 
-  <!-- Firebase scripts (LOAD ONCE) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
-  <script src="firebase-init.js" defer></script>
-  <script src="auth-guard.js" defer></script>
+  <!-- jsPDF + autoTable -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
+  <!-- Firebase + guard -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-functions-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="auth-guard.js"></script>
+
   <!-- Header -->
-  <header class="header">
-    <div class="brand">
-      <img src="logo.png" alt="Bayside logo" onerror="this.style.display='none'" loading="lazy" decoding="async">
-      <div class="title">Dashboard</div>
+  <header class="appbar">
+    <div class="appbar__left">
+      <img class="logo" src="logo.png" alt="Bayside Slashing" />
+      <h1 class="appbar__title">Dashboard</h1>
     </div>
-    <div class="userbox">
-      <div id="userEmail" class="email">—</div>
-      <button id="logoutBtn" class="btn" type="button">Logout</button>
+    <div class="appbar__right">
+      <span class="user-pill" id="user-email">—</span>
+      <button class="btn btn-outline" id="logoutBtn" type="button">Logout</button>
     </div>
   </header>
 
   <main class="container">
-    <!-- Admin tools -->
     <h2 class="section-title">Admin tools</h2>
-    <section class="tools">
-      <div class="card tool">
-        <!-- RENAMED -->
-        <h3>Users</h3>
-        <p>Create operator accounts and set display names.</p>
-        <div class="actions">
-          <a class="action" href="create-user.html">Create operator</a>
-          <a class="action" href="admin.html#disable" id="manageUsersLink">Disable / delete</a>
-          <!-- NEW BUTTON -->
-          <a class="action" href="risk-assessments.html">Open Risk Assessments</a>
+    <section class="admin-grid">
+      <!-- Users -->
+      <article class="card">
+        <div class="card__head">Users</div>
+        <div class="card__body">
+          <div style="color:#334155">Create operator/admin accounts and manage access.</div>
+          <div class="row">
+            <!-- ✅ Link to your existing page -->
+            <a class="btn btn-accent" href="create-user.html">Create user</a>
+            <!-- ✅ Opens modal (no new html) -->
+            <button class="btn btn-outline" id="btnOpenDisable">Disable / delete</button>
+          </div>
+          <div class="row">
+            <a class="btn btn-dark" href="risk-assessments.html">Open Risk Assessments</a>
+          </div>
         </div>
-      </div>
+      </article>
 
-      <div class="card tool">
-        <h3>Delegate work</h3>
-        <p>Assign parks or zones to operators (e.g., Zone 1, Parks 1–50).</p>
-        <div class="actions">
-          <a class="action" href="delegate.html">Delegate Work</a>
-          <a class="action" href="assignments.html">View assignments</a>
+      <!-- Delegate work -->
+      <article class="card">
+        <div class="card__head">Delegate work</div>
+        <div class="card__body">
+          <div style="color:#334155">Assign parks or zones to operators (e.g., Zone 1, Parks 1–50).</div>
+          <div class="row">
+            <a class="btn btn-accent" href="delegate.html">Delegate Work</a>
+            <a class="btn btn-outline" href="assignments.html">View assignments</a>
+          </div>
         </div>
-      </div>
+      </article>
 
-      <div class="card tool">
-        <h3>Generate reports</h3>
-        <p>Build PDFs (same options as your sidebar PDF actions).</p>
-        <div class="actions">
-          <!-- changed: these now trigger Parks* pages with ?autopdf=bayside -->
-          <a class="action" href="#" role="button" onclick="openSidebarReport('bayside','mowing')">Mowing PDF</a>
-          <a class="action" href="#" role="button" onclick="openSidebarReport('bayside','snipping')">Snipping PDF</a>
-          <a class="action" href="#" role="button" onclick="openSidebarReport('bayside','firebreaks')">Firebreaks PDF</a>
-          <a class="action" href="reports.html?type=daily">Daily summary</a>
+      <!-- Reports -->
+      <article class="card">
+        <div class="card__head">Generate reports</div>
+        <div class="card__body">
+          <div style="color:#334155">Build PDFs (same options as your sidebar PDF actions).</div>
+          <div class="row">
+            <button id="btnMowingPDF" class="btn btn-accent" type="button">Mowing PDF</button>
+            <button id="btnSnipPDF" class="btn btn-outline" type="button" disabled title="Coming soon">Snipping PDF</button>
+            <button id="btnFbPDF" class="btn btn-outline" type="button" disabled title="Coming soon">Firebreaks PDF</button>
+            <button id="btnDaily" class="btn btn-dark" type="button" disabled title="Coming soon">Daily summary</button>
+          </div>
         </div>
-      </div>
+      </article>
     </section>
 
-    <section class="section">
-      <h2 class="section-title">Work areas</h2>
+    <h2 class="section-title">Work areas</h2>
+    <section class="cards-row">
+      <a href="./ParksMowing.html" class="work-card">
+        <div class="work-card__img"><img src="MOWING PICTURE.png" alt="Parks Mowing map" /></div>
+        <div class="work-card__footer"><span class="work-card__title">Parks Mowing</span><span class="btn btn-dark">Open</span></div>
+      </a>
 
-      <div class="cards-row">
-        <a href="./ParksMowing.html" class="work-card">
-          <div class="work-card__img"><picture><source srcset="MOWING PICTURE.webp" type="image/webp"><img src="MOWING PICTURE.png" alt="Parks Mowing map" / loading="lazy" decoding="async" alt="Parks Mowing map"></picture></div>
-          <div class="work-card__footer"><span class="work-card__title">Parks Mowing</span><span class="btn-dark">Open</span></div>
-        </a>
+      <a href="./ParksSnipping.html" class="work-card">
+        <div class="work-card__img"><img src="SNIPPING PICTURE.png" alt="Parks Snipping map" /></div>
+        <div class="work-card__footer"><span class="work-card__title">Parks Snipping</span><span class="btn btn-dark">Open</span></div>
+      </a>
 
-        <a href="./ParksSnipping.html" class="work-card">
-          <div class="work-card__img"><picture><source srcset="SNIPPING PICTURE.webp" type="image/webp"><img src="SNIPPING PICTURE.png" alt="Parks Snipping map" / loading="lazy" decoding="async" alt="Parks Snipping map"></picture></div>
-          <div class="work-card__footer"><span class="work-card__title">Parks Snipping</span><span class="btn-dark">Open</span></div>
-        </a>
-
-        <a href="./Firebreaks.html" class="work-card">
-          <div class="work-card__img"><picture><source srcset="FIREBREAKS PICTURE.webp" type="image/webp"><img src="FIREBREAKS PICTURE.png" alt="Firebreaks map" / loading="lazy" decoding="async" alt="Firebreaks map"></picture></div>
-          <div class="work-card__footer"><span class="work-card__title">Firebreaks</span><span class="btn-dark">Open</span></div>
-        </a>
-      </div>
+      <a href="./Firebreaks.html" class="work-card">
+        <div class="work-card__img"><img src="FIREBREAKS PICTURE.png" alt="Firebreaks map" /></div>
+        <div class="work-card__footer"><span class="work-card__title">Firebreaks</span><span class="btn btn-dark">Open</span></div>
+      </a>
     </section>
   </main>
 
-  <!-- Modal: Manage operators -->
-  <div id="userModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
-    <div class="modal">
-      <header>
-        <h3 id="userModalTitle">Manage operators</h3>
-        <button class="close" type="button" id="modalCloseBtn">Close</button>
-      </header>
-      <div class="body">
-        <div class="toolbar">
-          <input id="opSearch" placeholder="Search by name or email…"/>
-          <span id="opCount" style="color:#64748b;font-weight:700"></span>
-        </div>
-        <div id="opList" class="op-list"></div>
-        <small style="color:#64748b">
-          <b>Note:</b> “Disable” sets a flag in Firestore; “Delete” marks the doc as deleted.
-          Removing the Auth account requires the Admin SDK (Cloud Function).
-        </small>
+  <footer class="footer-space" style="height:32px"></footer>
+
+  <!-- ===== Disable/Delete modal (no extra HTML file) ===== -->
+  <div class="modal-backdrop" id="disableBackdrop" aria-hidden="true"></div>
+  <section class="modal" id="disableModal" role="dialog" aria-modal="true" aria-labelledby="disableTitle">
+    <div class="modal__head">
+      <div class="modal__title" id="disableTitle">Operators — Disable / delete</div>
+      <button class="iconbtn" id="btnCloseDisable">Close ✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="note" id="disableNote" style="display:none"></div>
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px">
+        <input type="search" id="opSearch" placeholder="Search name, email or UID…" />
+        <span id="opCount" class="badge">0</span>
+      </div>
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th><th>Email</th><th>UID</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="opTbody">
+            <tr><td colspan="5">Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
+    <div class="modal__foot">
+      <button class="iconbtn" id="btnCloseDisable2">Done</button>
+    </div>
+  </section>
 
+  <!-- Small header helpers + auth UI -->
   <script>
-    // Basic header auth UI
-    (function(){
-      const emailEl = document.getElementById('userEmail');
-      const logoutBtn = document.getElementById('logoutBtn');
-
-      firebase.auth().onAuthStateChanged(user=>{
-        if(!user){ window.location.href = 'login.html'; return; }
-        emailEl.textContent = user.email || 'Signed in';
-      });
-
-      logoutBtn.addEventListener('click', async ()=>{
-        try{ await firebase.auth().signOut(); window.location.href = 'login.html'; }
-        catch(e){ console.warn(e); alert('Logout failed. Please try again.'); }
-      });
-    })();
-  </script>
-
-  <script>
-    // Disable / Delete modal logic
-    (function(){
-      if (!firebase.firestore) {
-        console.warn('Firestore not loaded');
-        return;
-      }
+    (function () {
       const db = firebase.firestore();
 
-      const userModal   = document.getElementById('userModal');
-      const manageLink  = document.getElementById('manageUsersLink');
-      const modalClose  = document.getElementById('modalCloseBtn');
-      const opList      = document.getElementById('opList');
-      const opSearch    = document.getElementById('opSearch');
-      const opCount     = document.getElementById('opCount');
-
-      let allOps = [];
-
-      function openModal(){ userModal.classList.remove('hidden'); loadOperators(); }
-      function closeModal(){ userModal.classList.add('hidden'); }
-
-      manageLink?.addEventListener('click', (e)=>{ e.preventDefault(); openModal(); });
-      modalClose?.addEventListener('click', closeModal);
-      userModal?.addEventListener('click', (e)=>{ if (e.target === userModal) closeModal(); });
-
-      if (location.hash === '#disable') openModal();
-
-      opSearch?.addEventListener('input', ()=> renderList(opSearch.value));
-
-      async function loadOperators(){
-        try{
-          const snap = await db.collection('users').where('role','==','operator').get();
-          const rows = [];
-          snap.forEach(doc=>{
-            const d = doc.data() || {};
-            rows.push({
-              uid: doc.id, name: d.name || '', username: d.username || '',
-              email: d.email || '', disabled: !!d.disabled, deleted: !!d.deleted
-            });
-          });
-          allOps = rows;
-          renderList(opSearch.value);
-        }catch(err){
-          opList.innerHTML = '<p style="color:#b91c1c;font-weight:700">Failed to load operators.</p>';
-          console.warn('loadOperators error:', err);
+      async function setDisplayName(u) {
+        const el = document.getElementById('user-email');
+        if (!el) return;
+        el.textContent = 'Signed in';
+        try {
+          const snap = await db.collection('users').doc(u.uid).get();
+          const d = snap.data() || {};
+          const display = d.name || d.username || u.displayName || (u.email ? u.email : u.uid);
+          el.textContent = display;
+        } catch {
+          el.textContent = u.displayName || (u.email ? u.email : u.uid);
         }
       }
 
-      function renderList(filter=''){
-        const q = (filter||'').trim().toLowerCase();
-        opList.innerHTML = '';
-        const list = allOps
-          .filter(u => !u.deleted)
-          .filter(u => !q ||
-            (u.name && u.name.toLowerCase().includes(q)) ||
-            (u.username && u.username.toLowerCase().includes(q)) ||
-            (u.email && u.email.toLowerCase().includes(q))
-          )
-          .sort((a,b)=>{
-            const an = (a.name || a.username || a.email || '').toLowerCase();
-            const bn = (b.name || b.username || b.email || '').toLowerCase();
-            return an.localeCompare(bn);
-          });
+      firebase.auth().onAuthStateChanged((u) => { if (u) setDisplayName(u); });
 
-        opCount.textContent = list.length ? `${list.length} operator${list.length>1?'s':''}` : 'No operators';
-
-        list.forEach(u=>{
-          const row = document.createElement('div');
-          row.className = 'op-row';
-
-          const main = document.createElement('div');
-          main.className = 'op-main';
-          const title = document.createElement('div');
-          title.className = 'op-name';
-          title.textContent = u.name || u.username || u.email || u.uid || 'Unknown';
-          if (u.disabled) { const pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = 'Disabled'; title.appendChild(pill); }
-          const meta = document.createElement('div');
-          meta.className = 'op-meta';
-          meta.textContent = u.email || '';
-          main.appendChild(title); main.appendChild(meta);
-
-          const actions = document.createElement('div');
-          actions.className = 'op-actions';
-
-          const disBtn = document.createElement('button');
-          disBtn.className = 'btn-small ' + (u.disabled ? 'btn-ok' : '');
-          disBtn.textContent = u.disabled ? 'Enable' : 'Disable';
-          disBtn.addEventListener('click', async ()=>{
-            try{
-              await db.collection('users').doc(u.uid).set({ disabled: !u.disabled, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-              u.disabled = !u.disabled; renderList(opSearch.value);
-            }catch(err){ alert('Failed to update: ' + (err.message || err.code || err)); }
-          });
-          actions.appendChild(disBtn);
-
-          const delBtn = document.createElement('button');
-          delBtn.className = 'btn-small btn-warn';
-          delBtn.textContent = 'Delete';
-          delBtn.addEventListener('click', async ()=>{
-            const first = confirm(`Delete ${u.name || u.username || u.email || 'this user'}?\n\nThis will mark them as deleted and disabled in Firestore.`);
-            if (!first) return;
-            const second = confirm('Are you sure? This action cannot be undone here.');
-            if (!second) return;
-            try{
-              await db.collection('users').doc(u.uid).set({
-                deleted: true, disabled: true, deletedAt: firebase.firestore.FieldValue.serverTimestamp()
-              }, { merge:true });
-              u.deleted = true; renderList(opSearch.value);
-            }catch(err){ alert('Failed to delete: ' + (err.message || err.code || err)); }
-          });
-          actions.appendChild(delBtn);
-
-          row.appendChild(main); row.appendChild(actions);
-          opList.appendChild(row);
-        });
-
-        if (!list.length){
-          const p = document.createElement('p'); p.style.color = '#64748b'; p.textContent = 'No operators match your search.'; p.style.margin = '6px 0 0'; opList.appendChild(p);
-        }
-      }
+      document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        try { await firebase.auth().signOut(); } catch(e) { console.warn(e); }
+        location.replace('./login.html');
+      });
     })();
   </script>
 
-  <!-- NEW: helper to open Parks* pages and auto-run the sidebar PDF -->
+  <!-- ===== Users modal logic (disable/delete) ===== -->
   <script>
-    /**
-     * Open the correct map page with ?autopdf=<kind> so its sidebar.js
-     * generates the PDF automatically.
-     *
-     * @param {'bayside'|'council'} kind
-     * @param {'mowing'|'snipping'|'firebreaks'} area
-     */
-    function openSidebarReport(kind = 'bayside', area = 'mowing'){
-      const byArea = {
-        mowing:    ["ParksMowing.html", "parksmowing.html"],
-        snipping:  ["ParksSnipping.html", "parkssnipping.html"],
-        firebreaks:["Firebreaks.html", "firebreaks.html"]
-      };
-      const candidates = byArea[area] || byArea.mowing;
-      const qs = `?autopdf=${encodeURIComponent(kind)}`;
+    (function(){
+      const db = firebase.firestore();
+      const functions = firebase.functions();
 
-      (async () => {
-        for (const f of candidates){
-          try {
-            const res = await fetch(f, { method: 'HEAD' });
-            if (res.ok) {
-              window.open(`${f}${qs}`, '_blank', 'noopener');
-              return;
-            }
-          } catch (_) { /* try next */ }
+      const $ = (s) => document.querySelector(s);
+      const $$ = (s) => document.querySelectorAll(s);
+
+      const openBtn = $('#btnOpenDisable');
+      const closeBtns = [$('#btnCloseDisable'), $('#btnCloseDisable2')];
+      const modal = $('#disableModal');
+      const backdrop = $('#disableBackdrop');
+      const tbody = $('#opTbody');
+      const search = $('#opSearch');
+      const count = $('#opCount');
+      const note = $('#disableNote');
+
+      let cache = [];
+
+      function showNote(msg, ok=false){
+        note.style.display = 'block';
+        note.className = 'note ' + (ok ? 'ok' : 'err');
+        note.textContent = msg;
+      }
+
+      function hideNote(){ note.style.display='none'; }
+
+      function openModal(){
+        backdrop.style.display = 'block';
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        load().catch(e => showNote(e.message || 'Failed to load operators.'));
+      }
+
+      function closeModal(){
+        backdrop.style.display = 'none';
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        hideNote();
+      }
+
+      openBtn?.addEventListener('click', openModal);
+      closeBtns.forEach(b => b?.addEventListener('click', closeModal));
+      backdrop?.addEventListener('click', closeModal);
+      window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); });
+
+      function row(u){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${u.name || '—'}</td>
+          <td>${u.email || '—'}</td>
+          <td style="font-family:ui-monospace, SFMono-Regular, Menlo, monospace">${u.id}</td>
+          <td>${u.disabled ? '<span class="badge">disabled</span>' : '<span class="badge active">active</span>'}</td>
+          <td>
+            <button class="btn btn-outline" data-act="${u.disabled ? 'enable' : 'disable'}" data-id="${u.id}">
+              ${u.disabled ? 'Enable' : 'Disable'}
+            </button>
+            <button class="btn btn-dark" data-act="delete" data-id="${u.id}">Delete</button>
+          </td>
+        `;
+        return tr;
+      }
+
+      function render(){
+        const term = (search.value||'').toLowerCase();
+        const list = cache.filter(u =>
+          (u.name||'').toLowerCase().includes(term) ||
+          (u.email||'').toLowerCase().includes(term) ||
+          (u.id||'').toLowerCase().includes(term)
+        );
+        tbody.innerHTML = '';
+        if (!list.length){ tbody.innerHTML = '<tr><td colspan="5">No operators found.</td></tr>'; count.textContent='0'; return; }
+        list.forEach(u => tbody.appendChild(row(u)));
+        count.textContent = String(list.length);
+      }
+
+      async function load(){
+        const snap = await db.collection('users').where('role','==','operator', 'snipper').get();
+        cache = [];
+        snap.forEach(doc => cache.push({ id: doc.id, ...doc.data() }));
+        render();
+      }
+
+      search.addEventListener('input', render);
+
+      // Helper: try HTTPS endpoint; falls back to callable; falls back to Firestore toggle
+      async function callAdminEndpoint(name, payload){
+        // Try HTTPS endpoint (same style as createUserHttp)
+        try{
+          const curUser = firebase.auth().currentUser;
+          if (!curUser) throw new Error('Sign in required.');
+          const idToken = await curUser.getIdToken(true);
+          const url = `https://us-central1-bayside-maps.cloudfunctions.net/${name}`;
+          const res = await fetch(url, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+idToken },
+            body: JSON.stringify(payload || {})
+          });
+          const json = await res.json().catch(()=> ({}));
+          if (res.ok && (json.ok === true || json.result?.ok === true)) return json.result || json;
+          throw new Error(json?.error || `HTTP ${res.status}`);
+        }catch(e){
+          return Promise.reject(e);
         }
-        alert("Couldn't find the target page. Check the filename/casing or adjust the helper.");
-      })();
-    }
+      }
+
+      tbody.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-act]');
+        if (!btn) return;
+        const uid = btn.getAttribute('data-id');
+        const act = btn.getAttribute('data-act');
+
+        hideNote();
+        btn.disabled = true;
+
+        try {
+          if (act === 'disable' || act === 'enable') {
+            const disabled = (act === 'disable');
+
+            // 1) Try HTTPS function
+            try{
+              await callAdminEndpoint('disableUserHttp', { uid, disabled });
+              showNote(`${disabled?'Disabled':'Enabled'} ${uid}`, true);
+            }catch(_){
+              // 2) Try callable function
+              try{
+                const fn = firebase.functions().httpsCallable('adminDisableUser');
+                await fn({ uid, disabled });
+                showNote(`${disabled?'Disabled':'Enabled'} ${uid}`, true);
+              }catch(_2){
+                // 3) Fallback: Firestore flag only
+                await db.collection('users').doc(uid).set({ disabled }, { merge:true });
+                showNote(`Cloud Function not found; set Firestore disabled=${disabled}. Auth account unchanged.`, false);
+              }
+            }
+
+          } else if (act === 'delete') {
+            if (!confirm('Type DELETE to permanently remove this operator (Auth + Firestore). Proceed?')) { btn.disabled=false; return; }
+            if (prompt('Confirm by typing DELETE') !== 'DELETE') { btn.disabled=false; return; }
+
+            // 1) Try HTTPS function
+            try{
+              await callAdminEndpoint('deleteUserHttp', { uid });
+              await db.collection('users').doc(uid).delete().catch(()=>{});
+              showNote(`Deleted ${uid}`, true);
+            }catch(_){
+              // 2) Try callable function
+              try{
+                const fn = firebase.functions().httpsCallable('adminDeleteUser');
+                await fn({ uid });
+                await db.collection('users').doc(uid).delete().catch(()=>{});
+                showNote(`Deleted ${uid}`, true);
+              }catch(_2){
+                showNote('Delete function not available. Cannot remove Auth user from browser.', false);
+              }
+            }
+          }
+
+          await load();
+        } catch (err) {
+          console.warn(err);
+          showNote(err.message || 'Action failed.', false);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    })();
   </script>
+
+  <!-- ===== Mowing PDF: logo left, title right, Date-only column ===== -->
+  <script>
+    (function () {
+      const db = firebase.firestore();
+      const AEST_TZ = 'Australia/Brisbane';
+
+      // Brand palette
+      const BRAND_BLACK = [17,24,39];      // #111827
+      const BRAND_RED   = [209,30,43];     // #d11e2b
+      const SLATE       = [100,116,139];   // #64748b
+      const GRID        = [226,232,240];   // #e2e8f0
+
+      // AEST day window
+      function buildAESTWindow(d = new Date()) {
+        const y = new Intl.DateTimeFormat('en-CA', { timeZone: AEST_TZ, year: 'numeric' }).format(d);
+        const m = new Intl.DateTimeFormat('en-CA', { timeZone: AEST_TZ, month: '2-digit' }).format(d);
+        const day = new Intl.DateTimeFormat('en-CA', { timeZone: AEST_TZ, day: '2-digit' }).format(d);
+        const iso = `${y}-${m}-${day}`;
+        const start = new Date(`${iso}T00:00:00+10:00`);
+        const end   = new Date(`${iso}T23:59:59+10:00`);
+        return { iso, start, end };
+      }
+      function fmtAESTDateOnly(ts) {
+        const d = ts instanceof Date ? ts : (ts?.toDate ? ts.toDate() : new Date(ts));
+        return new Intl.DateTimeFormat('en-GB', {
+          timeZone: AEST_TZ, day: '2-digit', month: '2-digit', year: 'numeric'
+        }).format(d); // e.g. 22/10/2025
+      }
+
+      // Load logo as dataURL (from ./logo.png)
+      function loadLogoDataURL(){
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try{
+              const c = document.createElement('canvas');
+              c.width = img.naturalWidth; c.height = img.naturalHeight;
+              const ctx = c.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              resolve(c.toDataURL('image/png'));
+            }catch(e){ resolve(null); }
+          };
+          img.onerror = () => resolve(null);
+          img.src = 'logo.png';
+        });
+      }
+
+      async function getUsersMap() {
+        const out = {};
+        try {
+          const snap = await db.collection('users').get();
+          snap.forEach(doc => {
+            const u = doc.data() || {};
+            out[doc.id] = u.name || u.username || (u.email ? u.email.split('@')[0] : doc.id);
+          });
+        } catch {}
+        return out;
+      }
+
+      async function fetchCompletedMowingToday() {
+        const { start, end } = buildAESTWindow();
+        const snap = await db.collection('work_logs')
+                             .where('timestamp', '>=', start)
+                             .where('timestamp', '<=', end)
+                             .get();
+
+        const tmp = [];
+        snap.forEach(doc => {
+          const d = doc.data() || {};
+          const status = String(d.status || '').toLowerCase();
+          if (status !== 'completed') return;
+
+          const sid = String(d.siteId || '').toUpperCase();
+          if (!/^M\d+$/i.test(sid)) return; // only mowing IDs
+
+          tmp.push({
+            operatorUid: d.operatorUid || '',
+            siteId: sid,
+            note: (d.note || '').trim(),
+            ts: d.timestamp || d.completedAt || d.updatedAt || d.createdAt || null
+          });
+        });
+
+        // latest record per operator+site
+        const latest = new Map();
+        for (const r of tmp) {
+          const key = `${r.operatorUid}|${r.siteId}`;
+          const t = r.ts?.toMillis ? r.ts.toMillis() : (r.ts instanceof Date ? r.ts.getTime() : 0);
+          const cur = latest.get(key);
+          if (!cur || t > (cur._t || 0)) latest.set(key, { ...r, _t: t });
+        }
+        return Array.from(latest.values());
+      }
+
+      async function exportMowingPDFAllOperatorsToday() {
+        const { jsPDF } = window.jspdf;
+        const logoData = await loadLogoDataURL();
+        const { iso } = buildAESTWindow();
+
+        const [usersMap, completed] = await Promise.all([
+          getUsersMap(),
+          fetchCompletedMowingToday()
+        ]);
+
+        completed.forEach(r => {
+          r.operator = usersMap[r.operatorUid] || r.operatorUid || '—';
+          r.dateOnly = fmtAESTDateOnly(r.ts);
+        });
+
+        // Sort by operator > site
+        completed.sort((a,b) => {
+          const n = (a.operator || '').localeCompare(b.operator || '');
+          return n !== 0 ? n : (a.siteId || '').localeCompare(b.siteId || '');
+        });
+
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const marginX = 40;
+
+        // Header: logo left, title right
+        const headerY = 36;
+        if (logoData) {
+          const LOGO_H = 36;           // slightly larger
+          const LOGO_W = LOGO_H * 2.3; // keep aspect ratio
+          const LOGO_X = marginX;      // left-aligned
+          doc.addImage(logoData, 'PNG', LOGO_X, headerY - 20, LOGO_W, LOGO_H);
+        }
+
+        // Title on the right
+        doc.setTextColor(...BRAND_BLACK);
+        doc.setFont('helvetica','bold'); doc.setFontSize(16);
+        doc.text('Parks Mowing — Completed Today', pageW - marginX, headerY + 18, { align: 'right' });
+
+        // Meta date (left)
+        doc.setFont('helvetica','normal'); doc.setFontSize(11);
+        doc.setTextColor(...SLATE);
+        doc.text(`Date: ${iso}`, marginX, headerY + 36);
+
+        // Red accent underline
+        doc.setDrawColor(...BRAND_RED);
+        doc.setLineWidth(1.5);
+        doc.line(marginX, headerY + 44, pageW - marginX, headerY + 44);
+
+        // Table body (Date-only)
+        const body = completed.length
+          ? completed.map(r => [r.operator, r.siteId, r.note || '', r.dateOnly])
+          : [['—','—','No mowing sites completed today','—']];
+
+        // AutoTable with brand styling
+        doc.autoTable({
+          head: [['Operator', 'Site ID', 'Note', 'Date']],
+          body,
+          startY: headerY + 62,
+          margin: { left: marginX, right: marginX },
+          theme: 'grid',
+          styles: {
+            font: 'helvetica',
+            fontSize: 10,
+            textColor: BRAND_BLACK,
+            lineColor: GRID,
+            lineWidth: 0.6,
+            cellPadding: 6
+          },
+          headStyles: {
+            fillColor: BRAND_RED,
+            textColor: [255,255,255],
+            fontStyle: 'bold',
+            lineColor: BRAND_RED,
+            halign: 'left'
+          },
+          columnStyles: {
+            0: { cellWidth: 160 },
+            1: { cellWidth: 70, halign: 'center' },
+            2: { cellWidth: pageW - (marginX*2) - 160 - 70 - 110 },
+            3: { cellWidth: 110, halign: 'right' } // Date column
+          },
+          didDrawPage: () => {
+            // Footer page number (subtle slate)
+            const str = `Page ${doc.internal.getNumberOfPages()}`;
+            doc.setFontSize(9);
+            doc.setTextColor(...SLATE);
+            doc.text(str, pageW - marginX, pageH - 18, { align: 'right' });
+          }
+        });
+
+        doc.save(`Mowing_Completed_${iso}.pdf`);
+      }
+
+      document.getElementById('btnMowingPDF')?.addEventListener('click', () => {
+        exportMowingPDFAllOperatorsToday().catch(err => {
+          console.warn('PDF export failed:', err);
+          alert('Sorry, the PDF could not be generated.');
+        });
+      });
+    })();
+  </script>
+
 </body>
 </html>

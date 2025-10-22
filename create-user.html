@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
   <style>
     :root{ --ink:#0f172a; --ink-2:#111827; --muted:#e5e7eb; --bg:#f6f7fb; --card:#ffffff; --accent:#d11e2b; --accent-600:#b71a24; }
@@ -31,11 +31,13 @@
 </head>
 <body>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
-  <script src="firebase-init.js" defer></script>
-  <script src="auth-guard.js" defer></script>
-  
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="auth-guard.js"></script>
+
   <div class="container">
     <div class="header">
       <div class="title">Create a User</div>
@@ -48,13 +50,14 @@
     <div class="card">
       <p class="muted">
         Anyone who is signed in can create users here. This calls your Firebase function
-        <code>adminCreateUser</code> in <b>us-central1</b>.
+        <code>createUserHttp</code> in <b>us-central1</b>.
       </p>
 
       <form id="createForm" autocomplete="on">
         <label>Role
           <select id="role" required>
             <option value="operator" selected>Operator</option>
+            <option value="snipper">Snipper</option> <!-- NEW -->
             <option value="admin">Admin</option>
           </select>
         </label>
@@ -74,14 +77,10 @@
     </div>
   </div>
 
-  <!-- Firebase (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
-  <script src="firebase-init.js" defer></script>
-
   <script>
     (function(){
       const auth = firebase.auth();
+      const db   = firebase.firestore();
 
       const form = document.getElementById('createForm');
       const roleSel = document.getElementById('role');
@@ -107,35 +106,35 @@
         console.log('[auth] signed in as', user.email || user.uid);
       });
 
-      // Direct call to the HTTPS endpoint with Authorization: Bearer <token>
-     async function callCreateUser(data) {
-  const user = firebase.auth().currentUser;
-  if (!user) throw new Error('Sign in required.');
-  const idToken = await user.getIdToken(true); // refresh
+      // Direct call to HTTPS endpoint with Authorization: Bearer <token>
+      async function callCreateUser(data) {
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('Sign in required.');
+        const idToken = await user.getIdToken(true); // refresh
 
-  const url = 'https://us-central1-bayside-maps.cloudfunctions.net/createUserHttp';
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + idToken
-    },
-    body: JSON.stringify(data)
-  });
+        const url = 'https://us-central1-bayside-maps.cloudfunctions.net/createUserHttp';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + idToken
+          },
+          body: JSON.stringify(data)
+        });
 
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.ok !== true) {
-    throw new Error(json?.error || ('HTTP ' + res.status));
-  }
-  return json; // { ok:true, uid, loginHint }
-}
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.ok !== true) {
+          throw new Error(json?.error || ('HTTP ' + res.status));
+        }
+        return json; // { ok:true, uid, loginHint }
+      }
 
       form.addEventListener('submit', async (e)=>{
         e.preventDefault();
         msg.textContent = '';
         err.textContent = '';
 
-        const role = roleSel.value; // 'operator' or 'admin'
+        const role = roleSel.value; // 'operator' | 'snipper' | 'admin'
         const username = userInput.value.trim();
         const password = document.getElementById('password').value;
 
@@ -145,20 +144,34 @@
         }
 
         try {
+          // 1) Create Auth user via your HTTPS Function
           const out = await callCreateUser({ role, usernameEmail: username, password });
-          const payload = out && out.result ? out.result : out;
-          if (payload && payload.ok) {
-            msg.textContent = role === 'admin'
-              ? `Admin “${username}” created.`
-              : `Operator “${username}” created.`;
-            form.reset();
-            configureFieldForRole();
+          const uid = out.uid || out.result?.uid;
+          if (!uid) throw new Error('Create function did not return uid.');
+
+          // 2) Store profile in Firestore (includes Snipper role)
+          const profile = {
+            role,
+            disabled: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          if (role === 'admin') {
+            profile.email = username;
+            profile.name = username.split('@')[0];
           } else {
-            err.textContent = 'Failed to create user.';
+            // operator/snipper path uses username field
+            profile.username = username;
+            profile.name = username;
           }
+          await db.collection('users').doc(uid).set(profile, { merge: true });
+
+          // 3) Success message
+          const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+          msg.textContent = `${roleLabel} “${username}” created.`;
+          form.reset();
+          configureFieldForRole();
         } catch (e2) {
           console.warn(e2);
-          // Try to show server-provided message if present
           const m = (e2 && e2.message) ? e2.message : 'Failed to create user';
           err.textContent = m.includes('UNAUTHENTICATED') ? 'Sign in required.' : m;
         }

@@ -1,13 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bayside – Dashboard</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dashboard.css">
 
   <!-- Page-specific styles for the Tasks card + RA modal -->
@@ -80,18 +78,18 @@
 <body>
 
   <!-- Firebase + guard -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
-  <script src="firebase-init.js" defer></script>
-  <script src="auth-guard.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="auth-guard.js"></script>
 
   <!-- Risk Assessment Modal -->
   <div id="riskBackdrop" class="ra-backdrop" aria-modal="true" role="dialog" aria-hidden="true">
     <div class="ra-modal">
       <div class="ra-header">
         <div class="ra-brand">
-          <img src="logo.png" alt="Logo" onerror="this.style.display='none'" loading="lazy" decoding="async">
+          <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
           <h3>Daily Risk Assessment</h3>
         </div>
         <span class="ra-pill" id="raDatePill"></span>
@@ -127,7 +125,7 @@
   <!-- Header -->
   <header class="appbar">
     <div class="appbar__left">
-      <img class="logo" src="logo.png" alt="Bayside Slashing" / loading="lazy" decoding="async">
+      <img class="logo" src="logo.png" alt="Bayside Slashing" />
       <h1 class="appbar__title">Dashboard</h1>
     </div>
 
@@ -153,17 +151,17 @@
 
       <div class="cards-row">
         <a href="./ParksMowing.html" class="work-card">
-          <div class="work-card__img"><picture><source srcset="MOWING PICTURE.webp" type="image/webp"><img src="MOWING PICTURE.png" alt="Parks Mowing map" / loading="lazy" decoding="async" alt="Parks Mowing map"></picture></div>
+          <div class="work-card__img"><img src="MOWING PICTURE.png" alt="Parks Mowing map" /></div>
           <div class="work-card__footer"><span class="work-card__title">Parks Mowing</span><span class="btn btn-dark">Open</span></div>
         </a>
 
         <a href="./ParksSnipping.html" class="work-card">
-          <div class="work-card__img"><picture><source srcset="SNIPPING PICTURE.webp" type="image/webp"><img src="SNIPPING PICTURE.png" alt="Parks Snipping map" / loading="lazy" decoding="async" alt="Parks Snipping map"></picture></div>
+          <div class="work-card__img"><img src="SNIPPING PICTURE.png" alt="Parks Snipping map" /></div>
           <div class="work-card__footer"><span class="work-card__title">Parks Snipping</span><span class="btn btn-dark">Open</span></div>
         </a>
 
         <a href="./Firebreaks.html" class="work-card">
-          <div class="work-card__img"><picture><source srcset="FIREBREAKS PICTURE.webp" type="image/webp"><img src="FIREBREAKS PICTURE.png" alt="Firebreaks map" / loading="lazy" decoding="async" alt="Firebreaks map"></picture></div>
+          <div class="work-card__img"><img src="FIREBREAKS PICTURE.png" alt="Firebreaks map" /></div>
           <div class="work-card__footer"><span class="work-card__title">Firebreaks</span><span class="btn btn-dark">Open</span></div>
         </a>
       </div>

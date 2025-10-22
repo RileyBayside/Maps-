@@ -105,11 +105,12 @@
 <body>
 
   <!-- Firebase + auth guard -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
-  <script src="firebase-init.js" defer></script>
-  <script src="auth-guard.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="auth-guard.js"></script>
 
   <!-- Sidebar toggle (hamburger) -->
   <button id="sidebar-toggle">☰</button>
@@ -117,7 +118,7 @@
   <!-- Sidebar -->
   <div id="sidebar">
     <div class="sidebar-head">
-      <img src="logo.png" alt="Bayside" onerror="this.style.display='none'" loading="lazy" decoding="async">
+      <img src="logo.png" alt="Bayside" onerror="this.style.display='none'">
       <div class="title">Assigned Parks</div>
     </div>
 
@@ -138,13 +139,22 @@
     </div>
   </div>
 
+  <!-- Site photo upload -->
+<div id="photo-uploader" style="display:flex; align-items:center; gap:8px; margin:8px 0">
+  <button id="uploadSitePhotoBtn" class="btn btn-accent" type="button">Upload site photo</button>
+  <progress id="photoProg" value="0" max="100" style="display:none; width:160px"></progress>
+</div>
+
+<!-- Optional: simple gallery -->
+<div id="sitePhotoGallery" style="display:grid; grid-template-columns:repeat(auto-fill,120px); gap:8px"></div>
+
   <!-- Map -->
   <div id="map"></div>
 
   <!-- Leaflet + your app scripts (let script.js initialise the map ONCE) -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js" defer></script>
-  <script src="script.js" defer></script>
-  <script src="sidebar.js" defer></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+  <script src="sidebar.js"></script>
 
   <!-- Wire return home + collapse all UI -->
   <script>
@@ -453,6 +463,134 @@
     });
   })();
   </script>
+
+  <script>
+(function(){
+  const storage = firebase.storage();
+  const db = firebase.firestore();
+
+  // TODO: replace this with your page's real source of truth for the active site
+  function getActiveSiteId() {
+    return window.currentSiteId || null; // or document.querySelector('#siteSelect')?.value
+  }
+
+  function fmtSafeName(file) {
+    const ts = Date.now();
+    const base = (file?.name || 'photo.jpg').replace(/\s+/g,'_');
+    return `${ts}-${base}`;
+  }
+
+  async function startPhotoUpload(siteId) {
+    const user = firebase.auth().currentUser;
+    if (!user) { alert('Sign in required'); return; }
+
+    // file input (hidden, auto-clicked)
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // hint for mobile camera
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      const safeName = fmtSafeName(file);
+      const path = `work_photos/${siteId}/${user.uid}/${safeName}`;
+      const ref = storage.ref(path);
+
+      const meta = {
+        contentType: file.type || 'image/jpeg',
+        customMetadata: { siteId, uploadedBy: user.uid }
+      };
+
+      // progress UI
+      const prog = document.getElementById('photoProg');
+      if (prog) prog.style.display = 'inline-block';
+
+      const task = ref.put(file, meta);
+      task.on('state_changed',
+        (snap) => {
+          if (prog) prog.value = Math.round(100 * snap.bytesTransferred / snap.totalBytes);
+        },
+        (err) => {
+          if (prog) prog.style.display = 'none';
+          alert('Upload failed: ' + (err?.message || err));
+        },
+        async () => {
+          if (prog) { prog.value = 100; setTimeout(()=>prog.style.display='none', 400); }
+          const url = await ref.getDownloadURL();
+          await db.collection('site_photos').add({
+            siteId,
+            storagePath: path,
+            url,
+            uploadedBy: user.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          // refresh gallery if present
+          renderSiteGallery(siteId);
+        }
+      );
+    };
+    input.click();
+  }
+
+  // --- Optional: super-simple gallery for this site ---
+  async function renderSiteGallery(siteId) {
+    const box = document.getElementById('sitePhotoGallery');
+    if (!box || !siteId) return;
+    box.innerHTML = 'Loading…';
+
+    const q = await db.collection('site_photos')
+      .where('siteId', '==', siteId)
+      .orderBy('createdAt', 'desc')
+      .limit(24)
+      .get();
+
+    if (q.empty) { box.textContent = 'No photos yet.'; return; }
+
+    const frag = document.createDocumentFragment();
+    q.forEach(doc => {
+      const d = doc.data();
+      const a = document.createElement('a');
+      a.href = d.url || '#';
+      a.target = '_blank';
+      a.rel = 'noopener';
+
+      const img = document.createElement('img');
+      img.src = d.url;
+      img.alt = d.storagePath;
+      img.style.width = '120px';
+      img.style.height = '90px';
+      img.style.objectFit = 'cover';
+      img.style.borderRadius = '8px';
+      img.loading = 'lazy';
+
+      a.appendChild(img);
+      frag.appendChild(a);
+    });
+    box.innerHTML = '';
+    box.appendChild(frag);
+  }
+
+  // Button hookup
+  document.getElementById('uploadSitePhotoBtn')?.addEventListener('click', async () => {
+    let siteId = getActiveSiteId();
+    if (!siteId) {
+      siteId = prompt('Enter Site ID (e.g., M0123)');
+      if (!siteId) return;
+    }
+    siteId = siteId.trim().toUpperCase();
+    await startPhotoUpload(siteId);
+  });
+
+  // Render gallery whenever we know the site or auth changes
+  firebase.auth().onAuthStateChanged(() => {
+    const s = getActiveSiteId();
+    if (s) renderSiteGallery(s);
+  });
+  // If your page sets window.currentSiteId later, call:
+  //   renderSiteGallery(window.currentSiteId);
+})();
+</script>
 
   <!-- Lean-map culling (hide markers out of view; if focus=..., hide non-assigned) -->
   <script>

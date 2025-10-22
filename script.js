@@ -1,4 +1,4 @@
-var map = L.map('map', {maxBounds: [[-28.0, 152.0], [-26.5, 154.2]], maxBoundsViscosity: 1.0, preferCanvas: true, '}).setView([-27.55, 153.2], 12);
+var map = L.map('map').setView([-27.55, 153.2], 12);
 
 // Base layers
 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -36,14 +36,14 @@ window.BaysideMaps = window.BaysideMaps || {};
  * Initialize the Parks Mowing map in any container.
  * @param {Object} opts
  * @param {string} opts.containerId - element id to mount the map into
- * @param {string} [opts.geojsonUrl='data.rounded.min.geojson'] - path to GeoJSON
+ * @param {string} [opts.geojsonUrl='data.geojson'] - path to GeoJSON
  * @param {(feature, layer, evt) => void} [opts.onFeatureClick] - handler for clicks
  * @param {boolean} [opts.fitBounds=true] - whether to fit to data bounds
  */
 BaysideMaps.initParksMowingMap = async function initParksMowingMap(opts = {}) {
   const {
     containerId,
-    geojsonUrl = 'data.rounded.min.geojson',
+    geojsonUrl = 'data.geojson',
     onFeatureClick,
     fitBounds = true
   } = opts;
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Load GeoJSON
-fetch('data.rounded.min.geojson')
+fetch('data.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, {

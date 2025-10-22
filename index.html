@@ -377,7 +377,7 @@
         // Title: Zone X - Name
         const title = document.createElement('div');
         title.className = 'task-title';
-        // AFTER (adds autolock=1) 
+        // AFTER (adds autolock=1)
         const dest = remaining.length
         ? `AssignedParks.html?focus=${encodeURIComponent(remaining.join(','))}&task=${encodeURIComponent(t.id)}&autolock=1`
         : `AssignedParks.html?task=${encodeURIComponent(t.id)}&autolock=1`;
@@ -482,7 +482,7 @@
   })();
   </script>
 
-  <!-- Risk Assessment modal logic (AEST + writes createdAt) -->
+  <!-- Risk Assessment modal logic (AEST + writes createdAt, operatorUid, createdBy, operatorEmail) -->
   <script>
   (function(){
     const db = firebase.firestore();
@@ -542,11 +542,13 @@
       const vals = checks.reduce((o,c)=> (o[c.dataset.key]=!!c.checked, o), {});
       const docId = `${u.uid}_${dayKeyAEST()}`;
 
+      // IMPORTANT: include operatorUid + createdBy + operatorEmail for rules
       await db.collection('risk_assessments').doc(docId).set({
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         dayKeyAEST: dayKeyAEST(),
         tz: TZ,
         operatorUid: u.uid,
+        createdBy: u.uid,
         operatorEmail: u.email || '',
         operatorDisplay: display,
         ppe: !!vals.ppe, equipment: !!vals.equipment, hazards: !!vals.hazards, traffic: !!vals.traffic,

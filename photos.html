@@ -14,7 +14,7 @@
     .hdr{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px }
     .title{ font-weight:800; font-size:22px }
     .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
-    input,button,select{ border:1px solid var(--muted); border-radius:10px; padding:10px 12px; font-size:14px }
+    input,button,select{ border:1px solid var(--muted); border-radius:10px; padding:10px 12px; font-size:14px; background:#fff }
     .btn{ cursor:pointer; font-weight:800 }
     .btn-accent{ background:var(--accent); color:#fff; border:0 }
     .btn-accent:hover{ background:var(--accent-600) }
@@ -25,6 +25,8 @@
     .muted{ color:#64748b }
     .danger{ color:#b91c1c }
     .small{ font-size:12px }
+    .pill{ padding:6px 8px; border:1px solid var(--muted); border-radius:10px; background:#fff }
+    .warn{ color:#b45309 }
   </style>
 </head>
 <body>
@@ -45,16 +47,23 @@
       </div>
     </div>
 
-    <div class="row">
-      <input id="siteId" placeholder="Site ID (e.g., M0123)" />
-      <select id="countSel">
-        <option value="24" selected>Last 24</option>
-        <option value="60">Last 60</option>
-        <option value="120">Last 120</option>
+    <!-- Filters -->
+    <div class="row" style="gap:10px">
+      <input id="siteId" class="pill" placeholder="Site ID (e.g., M0123)" />
+      <select id="opSel" class="pill"><option value="">Any operator</option></select>
+      <input id="startDate" class="pill" type="date" />
+      <input id="endDate" class="pill" type="date" />
+      <select id="countSel" class="pill">
+        <option value="24" selected>Limit 24</option>
+        <option value="60">Limit 60</option>
+        <option value="120">Limit 120</option>
       </select>
-      <button id="loadBtn" class="btn btn-accent">Load</button>
+      <button id="loadBtn" class="btn btn-accent">Apply</button>
+      <button id="clearBtn" class="btn">Clear</button>
       <span id="who" class="small muted">—</span>
     </div>
+
+    <div id="indexMsg" class="small warn" style="margin-top:8px; display:none"></div>
 
     <div id="grid" class="grid"></div>
   </div>
@@ -66,13 +75,16 @@
     const storage = firebase.storage();
 
     const siteInput = document.getElementById('siteId');
-    const countSel = document.getElementById('countSel');
-    const grid = document.getElementById('grid');
-    const who = document.getElementById('who');
+    const opSel     = document.getElementById('opSel');
+    const startEl   = document.getElementById('startDate');
+    const endEl     = document.getElementById('endDate');
+    const countSel  = document.getElementById('countSel');
+    const grid      = document.getElementById('grid');
+    const who       = document.getElementById('who');
+    const indexMsg  = document.getElementById('indexMsg');
 
     let currentUser = null;
     let isAdmin = false;
-
     auth.onAuthStateChanged(async (u)=>{
       currentUser = u;
       if (!u) return;
@@ -82,75 +94,139 @@
         isAdmin = token.claims && token.claims.role === 'admin';
         if (isAdmin) who.textContent += ' · admin';
       }catch{}
+      preloadOperators();
     });
 
-    async function load() {
-      grid.innerHTML = 'Loading…';
-      const siteId = (siteInput.value || '').trim().toUpperCase();
-      const limitN = parseInt(countSel.value, 10) || 24;
-
-      let q = db.collection('site_photos').orderBy('createdAt', 'desc').limit(limitN);
-      if (siteId) q = q.where('siteId', '==', siteId);
-
-      const snap = await q.get();
-      if (snap.empty) { grid.textContent = 'No photos found.'; return; }
-
-      const frag = document.createDocumentFragment();
-      snap.forEach(doc=>{
-        const d = doc.data();
-        const card = document.createElement('div'); card.className = 'card';
-
-        const img = document.createElement('img');
-        img.className = 'ph';
-        img.src = d.url || '';
-        img.alt = d.storagePath || d.siteId || 'photo';
-        img.loading = 'lazy';
-        card.appendChild(img);
-
-        const meta = document.createElement('div'); meta.className = 'meta';
-        const left = document.createElement('div'); left.innerHTML =
-          `<div><b>${d.siteId || '—'}</b></div>
-           <div class="muted small">${(d.uploadedBy || '—').slice(0,18)}</div>`;
-        meta.appendChild(left);
-
-        const right = document.createElement('div'); right.className='row';
-        const open = document.createElement('a'); open.className='btn small'; open.textContent='Open'; open.target='_blank'; open.href=d.url;
-        right.appendChild(open);
-
-        if (isAdmin) {
-          const del = document.createElement('button'); del.className='btn small danger'; del.textContent='Delete';
-          del.onclick = async ()=>{
-            if (!confirm('Delete this photo? This cannot be undone.')) return;
-            try {
-              // delete from Storage
-              if (d.storagePath) await storage.ref(d.storagePath).delete();
-            } catch(e) {
-              console.warn('storage delete', e);
-            }
-            try {
-              // delete Firestore doc
-              await db.collection('site_photos').doc(doc.id).delete();
-            } catch(e) {
-              console.warn('fs delete', e);
-            }
-            card.remove();
-          };
-          right.appendChild(del);
-        }
-
-        meta.appendChild(right);
-        card.appendChild(meta);
-        frag.appendChild(card);
-      });
-      grid.innerHTML = '';
-      grid.appendChild(frag);
+    // Populate operator list from users (operators + snippers)
+    async function preloadOperators(){
+      try{
+        const snap = await db.collection('users')
+          .where('role', 'in', ['operator','snipper'])
+          .get();
+        const opts = ['<option value="">Any operator</option>'];
+        snap.forEach(doc=>{
+          const d = doc.data() || {};
+          const name = d.name || d.username || (d.email ? d.email.split('@')[0] : doc.id);
+          opts.push(`<option value="${doc.id}">${name}</option>`);
+        });
+        opSel.innerHTML = opts.join('');
+      }catch(e){
+        // Fallback: if 'in' query not supported due to index, just ignore and leave "Any operator"
+        console.warn('operator preload', e);
+      }
     }
 
-    document.getElementById('loadBtn').addEventListener('click', load);
+    function toDateStart(val){
+      if (!val) return null;
+      const d = new Date(val + 'T00:00:00');
+      return d;
+    }
+    function toDateEnd(val){
+      if (!val) return null;
+      const d = new Date(val + 'T23:59:59.999');
+      return d;
+    }
 
-    // Pre-fill Site ID from query string ?site=M0123 if present
+    async function load() {
+      indexMsg.style.display = 'none';
+      grid.innerHTML = 'Loading…';
+
+      const siteId = (siteInput.value || '').trim().toUpperCase();
+      const uid    = (opSel.value || '').trim();
+      const start  = toDateStart(startEl.value);
+      const end    = toDateEnd(endEl.value);
+      const limitN = parseInt(countSel.value, 10) || 24;
+
+      try{
+        let q = db.collection('site_photos');
+
+        if (siteId) q = q.where('siteId', '==', siteId);
+        if (uid)    q = q.where('uploadedBy', '==', uid);
+        if (start)  q = q.where('createdAt', '>=', start);
+        if (end)    q = q.where('createdAt', '<=', end);
+
+        q = q.orderBy('createdAt', 'desc').limit(limitN);
+
+        const snap = await q.get();
+        if (snap.empty) { grid.textContent = 'No photos found for these filters.'; return; }
+
+        const frag = document.createDocumentFragment();
+        snap.forEach(doc=>{
+          const d = doc.data();
+          const card = document.createElement('div'); card.className = 'card';
+
+          const img = document.createElement('img');
+          img.className = 'ph';
+          img.src = d.url || '';
+          img.alt = d.storagePath || d.siteId || 'photo';
+          img.loading = 'lazy';
+          card.appendChild(img);
+
+          const meta = document.createElement('div'); meta.className = 'meta';
+          const left = document.createElement('div'); left.innerHTML =
+            `<div><b>${d.siteId || '—'}</b></div>
+             <div class="muted small">${(d.uploadedBy || '—').slice(0,18)}</div>`;
+          meta.appendChild(left);
+
+          const right = document.createElement('div'); right.className='row';
+          const open = document.createElement('a'); open.className='btn small'; open.textContent='Open'; open.target='_blank'; open.href=d.url;
+          right.appendChild(open);
+
+          if (isAdmin) {
+            const del = document.createElement('button'); del.className='btn small danger'; del.textContent='Delete';
+            del.onclick = async ()=>{
+              if (!confirm('Delete this photo? This cannot be undone.')) return;
+              try { if (d.storagePath) await storage.ref(d.storagePath).delete(); } catch(e) { console.warn('storage delete', e); }
+              try { await db.collection('site_photos').doc(doc.id).delete(); } catch(e) { console.warn('fs delete', e); }
+              card.remove();
+            };
+            right.appendChild(del);
+          }
+          meta.appendChild(right);
+          card.appendChild(meta);
+          frag.appendChild(card);
+        });
+        grid.innerHTML = '';
+        grid.appendChild(frag);
+      }catch(err){
+        console.warn(err);
+        grid.innerHTML = '';
+        // Helpful message when a composite index is needed
+        if (err && err.code === 9 /* FAILED_PRECONDITION */ && err.message && err.message.includes('index')) {
+          const m = err.message.match(/https?:\/\/[^\s)]+/);
+          indexMsg.innerHTML = `This filter combination needs a Firestore index. ${m ? `Create it here: <a href="${m[0]}" target="_blank" rel="noopener">${m[0]}</a>` : ''}`;
+          indexMsg.style.display = 'block';
+        } else {
+          indexMsg.textContent = 'Failed to load photos. Please adjust filters or try again.';
+          indexMsg.style.display = 'block';
+        }
+      }
+    }
+
+    // Buttons
+    document.getElementById('loadBtn').addEventListener('click', load);
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      siteInput.value = '';
+      opSel.value = '';
+      startEl.value = '';
+      endEl.value = '';
+      load();
+    });
+
+    // Pre-fill from query string (?site=M0123&uid=<UID>&from=2025-10-01&to=2025-10-31)
     const params = new URLSearchParams(location.search);
     if (params.get('site')) siteInput.value = params.get('site').toUpperCase();
+    if (params.get('uid'))  opSel.value = params.get('uid');
+    if (params.get('from')) startEl.value = params.get('from');
+    if (params.get('to'))   endEl.value = params.get('to');
+
+    // Default to last 30 days if nothing chosen
+    if (!startEl.value && !endEl.value) {
+      const today = new Date();
+      const prior = new Date(today); prior.setDate(prior.getDate() - 30);
+      startEl.value = prior.toISOString().slice(0,10);
+      endEl.value   = today.toISOString().slice(0,10);
+    }
 
     // initial load
     setTimeout(load, 200);

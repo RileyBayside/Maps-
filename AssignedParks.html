@@ -490,61 +490,7 @@
       return `${ts}-${base}`;
     }
 
-    async function startPhotoUpload(siteId) {
-      const user = firebase.auth().currentUser;
-      if (!user) { alert('Sign in required'); return; }
-
-      // file input (hidden, auto-clicked)
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment'; // hint for mobile camera
-      input.onchange = async () => {
-        const file = input.files[0];
-        if (!file) return;
-
-        const safeName = fmtSafeName(file);
-        const path = `work_photos/${siteId}/${user.uid}/${safeName}`;
-        const ref = storage.ref(path);
-
-        const meta = {
-          contentType: file.type || 'image/jpeg',
-          customMetadata: { siteId, uploadedBy: user.uid }
-        };
-
-        // progress UI
-        const prog = document.getElementById('photoProg');
-        if (prog) { prog.value = 0; prog.style.display = 'inline-block'; }
-
-        const task = ref.put(file, meta);
-        task.on('state_changed',
-          (snap) => {
-            if (prog && snap.totalBytes) {
-              prog.value = Math.round(100 * snap.bytesTransferred / snap.totalBytes);
-            }
-          },
-          (err) => {
-            if (prog) prog.style.display = 'none';
-            alert('Upload failed: ' + (err?.message || err));
-          },
-          // COMPLETE -> create Firestore index doc (normalized fields)
-          async () => {
-            try {
-              const url = await ref.getDownloadURL();
-              const u   = firebase.auth().currentUser;
-
-              const ninetyDays = 90 * 24 * 60 * 60 * 1000;
-await db.collection('site_photos').add({
-  siteId: siteId.toUpperCase(),
-  url,
-  storagePath: path,
-  uploadedBy: u.uid,
-  operatorUid: u.uid,
-  operatorEmail: u.email || null,
-  createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-  expireAt: firebase.firestore.Timestamp.fromMillis(Date.now() + ninetyDays)
-              });
+      v
 
               if (prog) { prog.value = 100; setTimeout(()=>prog.style.display='none', 400); }
               renderSiteGallery(String(siteId).toUpperCase());

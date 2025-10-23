@@ -154,8 +154,6 @@
     </div>
   </div>
 
-  <!-- (Removed old top-of-page photo-uploader block) -->
-
   <!-- Optional: simple gallery -->
   <div id="sitePhotoGallery" style="display:grid; grid-template-columns:repeat(auto-fill,120px); gap:8px"></div>
 
@@ -229,7 +227,7 @@
         root.querySelectorAll('details').forEach(d => {
           const any = [...d.querySelectorAll('li, .list-item, .sidebar-row, .item')]
             .some(el => el.style.display !== 'none');
-          d.display = any ? '' : 'none';
+          d.style.display = any ? '' : 'none';
           if (any) d.open = true;
         });
       }
@@ -475,133 +473,156 @@
   })();
   </script>
 
+  <!-- Upload-to-Storage + Firestore index + simple gallery -->
   <script>
-(function(){
-  const storage = firebase.storage();
-  const db = firebase.firestore();
+  (function(){
+    const storage = firebase.storage();
+    const db = firebase.firestore();
 
-  // TODO: replace this with your page's real source of truth for the active site
-  function getActiveSiteId() {
-    return window.currentSiteId || null; // or document.querySelector('#siteSelect')?.value
-  }
-
-  function fmtSafeName(file) {
-    const ts = Date.now();
-    const base = (file?.name || 'photo.jpg').replace(/\s+/g,'_');
-    return `${ts}-${base}`;
-  }
-
-  async function startPhotoUpload(siteId) {
-    const user = firebase.auth().currentUser;
-    if (!user) { alert('Sign in required'); return; }
-
-    // file input (hidden, auto-clicked)
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment'; // hint for mobile camera
-    input.onchange = async () => {
-      const file = input.files[0];
-      if (!file) return;
-
-      const safeName = fmtSafeName(file);
-      const path = `work_photos/${siteId}/${user.uid}/${safeName}`;
-      const ref = storage.ref(path);
-
-      const meta = {
-        contentType: file.type || 'image/jpeg',
-        customMetadata: { siteId, uploadedBy: user.uid }
-      };
-
-      // progress UI
-      const prog = document.getElementById('photoProg');
-      if (prog) prog.style.display = 'inline-block';
-
-      const task = ref.put(file, meta);
-      task.on('state_changed',
-        (snap) => {
-          if (prog) prog.value = Math.round(100 * snap.bytesTransferred / snap.totalBytes);
-        },
-        (err) => {
-          if (prog) prog.style.display = 'none';
-          alert('Upload failed: ' + (err?.message || err));
-        },
-        async () => {
-          if (prog) { prog.value = 100; setTimeout(()=>prog.style.display='none', 400); }
-          const url = await ref.getDownloadURL();
-          await db.collection('site_photos').add({
-            siteId,
-            storagePath: path,
-            url,
-            uploadedBy: user.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          // refresh gallery if present
-          renderSiteGallery(siteId);
-        }
-      );
-    };
-    input.click();
-  }
-
-  // --- Optional: super-simple gallery for this site ---
-  async function renderSiteGallery(siteId) {
-    const box = document.getElementById('sitePhotoGallery');
-    if (!box || !siteId) return;
-    box.innerHTML = 'Loading…';
-
-    const q = await db.collection('site_photos')
-      .where('siteId', '==', siteId)
-      .orderBy('createdAt', 'desc')
-      .limit(24)
-      .get();
-
-    if (q.empty) { box.textContent = 'No photos yet.'; return; }
-
-    const frag = document.createDocumentFragment();
-    q.forEach(doc => {
-      const d = doc.data();
-      const a = document.createElement('a');
-      a.href = d.url || '#';
-      a.target = '_blank';
-      a.rel = 'noopener';
-
-      const img = document.createElement('img');
-      img.src = d.url;
-      img.alt = d.storagePath;
-      img.style.width = '120px';
-      img.style.height = '90px';
-      img.style.objectFit = 'cover';
-      img.style.borderRadius = '8px';
-      img.loading = 'lazy';
-
-      a.appendChild(img);
-      frag.appendChild(a);
-    });
-    box.innerHTML = '';
-    box.appendChild(frag);
-  }
-
-  // Button hookup
-  document.getElementById('uploadSitePhotoBtn')?.addEventListener('click', async () => {
-    let siteId = getActiveSiteId();
-    if (!siteId) {
-      siteId = prompt('Enter Site ID (e.g., M0123)');
-      if (!siteId) return;
+    // Replace as needed with page's source of truth
+    function getActiveSiteId() {
+      return window.currentSiteId || null;
     }
-    siteId = siteId.trim().toUpperCase();
-    await startPhotoUpload(siteId);
-  });
 
-  // Render gallery whenever we know the site or auth changes
-  firebase.auth().onAuthStateChanged(() => {
-    const s = getActiveSiteId();
-    if (s) renderSiteGallery(s);
-  });
-  // If your page sets window.currentSiteId later, call:
-  //   renderSiteGallery(window.currentSiteId);
-})();
-</script>
+    function fmtSafeName(file) {
+      const ts = Date.now();
+      const base = (file?.name || 'photo.jpg').replace(/\s+/g,'_');
+      return `${ts}-${base}`;
+    }
+
+    async function startPhotoUpload(siteId) {
+      const user = firebase.auth().currentUser;
+      if (!user) { alert('Sign in required'); return; }
+
+      // file input (hidden, auto-clicked)
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment'; // hint for mobile camera
+      input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+
+        const safeName = fmtSafeName(file);
+        const path = `work_photos/${siteId}/${user.uid}/${safeName}`;
+        const ref = storage.ref(path);
+
+        const meta = {
+          contentType: file.type || 'image/jpeg',
+          customMetadata: { siteId, uploadedBy: user.uid }
+        };
+
+        // progress UI
+        const prog = document.getElementById('photoProg');
+        if (prog) { prog.value = 0; prog.style.display = 'inline-block'; }
+
+        const task = ref.put(file, meta);
+        task.on('state_changed',
+          (snap) => {
+            if (prog && snap.totalBytes) {
+              prog.value = Math.round(100 * snap.bytesTransferred / snap.totalBytes);
+            }
+          },
+          (err) => {
+            if (prog) prog.style.display = 'none';
+            alert('Upload failed: ' + (err?.message || err));
+          },
+          // COMPLETE -> create Firestore index doc (normalized fields)
+          async () => {
+            try {
+              const url = await ref.getDownloadURL();
+              const u   = firebase.auth().currentUser;
+
+              await db.collection('site_photos').add({
+                siteId: String(siteId).toUpperCase(),
+                url,
+                storagePath: path,
+                // who
+                uploadedBy: u.uid,
+                operatorUid: u.uid,                 // alias for compatibility
+                operatorEmail: u.email || null,
+                // when
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp() // fallback field
+              });
+
+              if (prog) { prog.value = 100; setTimeout(()=>prog.style.display='none', 400); }
+              renderSiteGallery(String(siteId).toUpperCase());
+            } catch (e) {
+              if (prog) prog.style.display = 'none';
+              alert('Saved to storage but failed to index in Firestore.');
+              console.error(e);
+            }
+          }
+        );
+      };
+      input.click();
+    }
+
+    // --- Optional: super-simple gallery for this site ---
+    async function renderSiteGallery(siteId) {
+      const box = document.getElementById('sitePhotoGallery');
+      if (!box || !siteId) return;
+      box.innerHTML = 'Loading…';
+
+      try{
+        const q = await db.collection('site_photos')
+          .where('siteId', '==', siteId)
+          .orderBy('createdAt', 'desc')
+          .limit(24)
+          .get();
+
+        if (q.empty) { box.textContent = 'No photos yet.'; return; }
+
+        const frag = document.createDocumentFragment();
+        q.forEach(doc => {
+          const d = doc.data();
+          const a = document.createElement('a');
+          a.href = d.url || '#';
+          a.target = '_blank';
+          a.rel = 'noopener';
+
+          const img = document.createElement('img');
+          img.src = d.url;
+          img.alt = d.storagePath;
+          img.style.width = '120px';
+          img.style.height = '90px';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '8px';
+          img.loading = 'lazy';
+
+          a.appendChild(img);
+          frag.appendChild(a);
+        });
+        box.innerHTML = '';
+        box.appendChild(frag);
+      }catch(e){
+        box.textContent = 'Failed to load photos.';
+        console.error(e);
+      }
+    }
+
+    // Button hookup
+    document.getElementById('uploadSitePhotoBtn')?.addEventListener('click', async () => {
+      let siteId = getActiveSiteId();
+      if (!siteId) {
+        siteId = prompt('Enter Site ID (e.g., M0123)');
+        if (!siteId) return;
+      }
+      siteId = siteId.trim().toUpperCase();
+      await startPhotoUpload(siteId);
+    });
+
+    // Render gallery whenever we know the site or auth changes
+    firebase.auth().onAuthStateChanged(() => {
+      const s = getActiveSiteId();
+      if (s) renderSiteGallery(s);
+    });
+
+    // Expose for other scripts if needed
+    window.renderSiteGallery = renderSiteGallery;
+  })();
+  </script>
 
   <!-- Lean-map culling (hide markers out of view; if focus=..., hide non-assigned) -->
   <script>

@@ -15,6 +15,8 @@
     body{ background:#f6f7fb; color:#0f172a; font-family:Inter,system-ui,Arial,sans-serif }
     .container{ max-width:1100px; margin:28px auto; padding:0 16px }
     h1{ font-size:28px; font-weight:800; margin:0 0 16px }
+    .back{ float:right; font-weight:800; margin-top:-4px; }
+
     .toolbar{
       display:flex; flex-wrap:wrap; gap:10px; align-items:center;
       background:#fff; border:1px solid var(--muted); border-radius:12px; padding:10px;
@@ -29,17 +31,14 @@
     .btn-apply:hover{ background:var(--accent-600) }
     .btn-clear{ background:#111827; color:#fff }
     .meta{ margin-left:auto; font-size:12px; color:#475569 }
-    .back{ float:right; font-weight:800; margin-top:-4px; }
 
-    /* Grid + cards */
-    .grid{
-      margin-top:16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px;
-    }
+    .grid{ margin-top:16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px; }
     .card{
       background:#fff; border:1px solid var(--muted); border-radius:12px; overflow:hidden;
       box-shadow:0 8px 26px rgba(16,24,40,.06); cursor:pointer;
     }
     .card img{ width:100%; height:160px; object-fit:cover; display:block }
+    .card img.broken{ background:#f1f5f9; object-fit:contain; padding:24px }
     .card .info{ padding:8px 10px; display:grid; gap:4px; font-weight:700 }
     .pill{ display:inline-block; background:#f1f5f9; border:1px solid #e5e7eb; border-radius:999px; padding:2px 8px; font-size:12px }
     .empty{ margin:18px 2px; color:#64748b; font-weight:700 }
@@ -69,9 +68,7 @@
     }
     #photoModal .bar .meta{ font-weight:700; color:#111827 }
     #photoModal .bar .actions{ display:flex; gap:8px }
-    #photoModal .btn{
-      border:0; border-radius:10px; padding:8px 12px; font-weight:800; cursor:pointer;
-    }
+    #photoModal .btn{ border:0; border-radius:10px; padding:8px 12px; font-weight:800; cursor:pointer; }
     #photoModal .btn-primary{ background:#111827; color:#fff }
     #photoModal .btn-accent{ background:#d11e2b; color:#fff }
   </style>
@@ -144,8 +141,11 @@
       const END   = new Date(end.getTime() - 10*60*60*1000 + 24*60*60*1000);          // inclusive end
       return { START, END };
     }
+    const fmtAEST = (ms) =>
+      new Date(ms).toLocaleString('en-AU', { timeZone:'Australia/Brisbane', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
     function upper(s){ return String(s||'').trim().toUpperCase(); }
-    const fmtAEST = (ms) => new Date(ms).toLocaleString('en-AU', { timeZone:'Australia/Brisbane', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const iso = (d) => d.toISOString().slice(0,10);
 
     // ---- UI elements ----
     const siteIdInput  = document.getElementById('siteIdInput');
@@ -159,12 +159,13 @@
     const emptyEl      = document.getElementById('empty');
     const whoami       = document.getElementById('whoami');
 
-    // Default date window: last 30 days
-    const today = new Date();
-    const iso = (d) => d.toISOString().slice(0,10);
-    const d30 = new Date(today.getTime() - 29*24*60*60*1000);
-    startInput.value = iso(d30);
-    endInput.value   = iso(today);
+    // --- default date window: last 30 days -> today (recomputed every load) ---
+    (function setDefaultDates(){
+      const today = new Date();
+      const d30   = new Date(today.getTime() - 29*24*60*60*1000);
+      startInput.value = iso(d30);
+      endInput.value   = iso(today);
+    })();
 
     // --- Render list (thumbnails only) ---
     function render(photos){
@@ -184,6 +185,7 @@
         img.src = p.url;
         img.alt = p.siteId || 'Site photo';
         img.loading = 'lazy';
+        img.onerror = () => img.classList.add('broken');
         card.appendChild(img);
 
         const info = document.createElement('div');
@@ -235,10 +237,10 @@
       window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
     })();
 
-    // --- Normalizer ---
+    // --- Normalize Firestore doc -> UI object ---
     function normalize(doc){
       const d = doc.data() || {};
-      const ts = d.createdAt?.toDate?.() || d.timestamp?.toDate?.() || d.created_at?.toDate?.() || null;
+      const ts = d.createdAt?.toDate?.() || d.timestamp?.toDate?.() || null;
       const whenTs = ts ? ts.getTime() : 0;
       const when = whenTs ? fmtAEST(whenTs) : '';
       return {
@@ -253,56 +255,34 @@
       };
     }
 
-    // --- Fetch tolerant (createdAt | timestamp; two collections) ---
+    // --- Load from site_photos only (handles createdAt or timestamp) ---
     async function load(){
-      const limitN = parseInt(limitInput.value || '24', 10);
-      const siteFilter = upper(siteIdInput.value);
-      const opFilter   = operatorSel.value || '';
+      const limitN    = parseInt(limitInput.value || '24', 10);
+      const siteFilter= upper(siteIdInput.value);
+      const opFilter  = operatorSel.value || '';
       const { START, END } = aestRange(startInput.value, endInput.value);
 
-      async function fetchColl(name){
-        // Prefer createdAt range; fall back to timestamp; then fallback to latest docs
-        try{
-          let q = db.collection(name).orderBy('createdAt', 'desc')
-                     .where('createdAt', '>=', START).where('createdAt','<', END)
-                     .limit(limitN * 5);
-          const snap = await q.get();
-          return snap;
-        }catch(e1){
-          try{
-            let q2 = db.collection(name).orderBy('timestamp', 'desc')
-                       .where('timestamp','>=', START).where('timestamp','<', END)
-                       .limit(limitN * 5);
-            const snap2 = await q2.get();
-            return snap2;
-          }catch(e2){
-            const snap3 = await db.collection(name).orderBy('createdAt','desc').limit(limitN * 5).get();
-            return snap3;
-          }
-        }
+      let snap;
+      try {
+        snap = await db.collection('site_photos')
+          .orderBy('createdAt','desc')
+          .where('createdAt','>=', START).where('createdAt','<', END)
+          .limit(limitN * 5)
+          .get();
+      } catch (e1) {
+        // fallback: timestamp field
+        snap = await db.collection('site_photos')
+          .orderBy('timestamp','desc')
+          .where('timestamp','>=', START).where('timestamp','<', END)
+          .limit(limitN * 5)
+          .get();
       }
-
-      const [a, b] = await Promise.all([
-        fetchColl('site_photos'),
-        fetchColl('sitePhotos')
-      ]);
 
       const all = [];
-      a.forEach(d => all.push(normalize(d)));
-      b.forEach(d => all.push(normalize(d)));
+      snap.forEach(d => all.push(normalize(d)));
 
-      // De-dupe by storagePath or id
-      const seen = new Set();
-      const uniq = [];
-      for (const p of all){
-        const key = p.storagePath || p.id;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        uniq.push(p);
-      }
-
-      // Client-side filters + sort newest first
-      let filtered = uniq.filter(p => {
+      // client filters + sort newest first
+      let filtered = all.filter(p => {
         const inRange = (p.whenTs >= START.getTime() && p.whenTs < END.getTime()) || p.whenTs === 0;
         if (!inRange) return false;
         if (siteFilter && p.siteId !== siteFilter) return false;
@@ -314,13 +294,12 @@
       });
       filtered.sort((x,y)=> y.whenTs - x.whenTs);
 
-      // Limit final render
       render(filtered.slice(0, limitN));
 
       // Populate operator dropdown (first load only)
       if (operatorSel.children.length === 1) {
         const ops = new Set();
-        uniq.slice(0, 300).forEach(p => {
+        all.slice(0, 300).forEach(p => {
           const s = (p.operatorEmail || p.uploadedBy || p.operatorUid || '').toString();
           if (s) ops.add(s);
         });
@@ -337,13 +316,15 @@
     clearBtn.addEventListener('click', () => {
       siteIdInput.value = '';
       operatorSel.value = '';
-      const t = new Date();
-      startInput.value = iso(t);
-      endInput.value   = iso(t);
+      // reset to "last 30 days -> today" again
+      const today = new Date();
+      const d30   = new Date(today.getTime() - 29*24*60*60*1000);
+      startInput.value = iso(d30);
+      endInput.value   = iso(today);
       load();
     });
 
-    // Start after auth (so we can show whoami and ensure rules allow list)
+    // Start after auth (shows whoami + ensures rules let us list)
     auth.onAuthStateChanged(u => {
       whoami.textContent = u?.email || '';
       load();

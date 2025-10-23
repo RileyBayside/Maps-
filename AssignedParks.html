@@ -533,17 +533,17 @@
               const url = await ref.getDownloadURL();
               const u   = firebase.auth().currentUser;
 
-              await db.collection('site_photos').add({
-                siteId: String(siteId).toUpperCase(),
-                url,
-                storagePath: path,
-                // who
-                uploadedBy: u.uid,
-                operatorUid: u.uid,                 // alias for compatibility
-                operatorEmail: u.email || null,
-                // when
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                timestamp: firebase.firestore.FieldValue.serverTimestamp() // fallback field
+              const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+await db.collection('site_photos').add({
+  siteId: siteId.toUpperCase(),
+  url,
+  storagePath: path,
+  uploadedBy: u.uid,
+  operatorUid: u.uid,
+  operatorEmail: u.email || null,
+  createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+  expireAt: firebase.firestore.Timestamp.fromMillis(Date.now() + ninetyDays)
               });
 
               if (prog) { prog.value = 100; setTimeout(()=>prog.style.display='none', 400); }

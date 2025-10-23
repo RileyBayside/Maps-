@@ -30,53 +30,50 @@
     .btn-clear{ background:#111827; color:#fff }
     .meta{ margin-left:auto; font-size:12px; color:#475569 }
     .back{ float:right; font-weight:800; margin-top:-4px; }
+
+    /* Grid + cards */
     .grid{
       margin-top:16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px;
     }
     .card{
       background:#fff; border:1px solid var(--muted); border-radius:12px; overflow:hidden;
-      box-shadow:0 8px 26px rgba(16,24,40,.06);
+      box-shadow:0 8px 26px rgba(16,24,40,.06); cursor:pointer;
     }
     .card img{ width:100%; height:160px; object-fit:cover; display:block }
     .card .info{ padding:8px 10px; display:grid; gap:4px; font-weight:700 }
     .pill{ display:inline-block; background:#f1f5f9; border:1px solid #e5e7eb; border-radius:999px; padding:2px 8px; font-size:12px }
     .empty{ margin:18px 2px; color:#64748b; font-weight:700 }
-  
-    /* --- Photo cards: clickable thumbnail only --- */
-.grid .card { cursor:pointer; }
-.grid .card a { text-decoration:none; }
 
-/* --- Modal viewer --- */
-#photoModal {
-  position: fixed; inset: 0; display: none;
-  align-items: center; justify-content: center;
-  background: rgba(15,23,42,.6); z-index: 1000;
-}
-#photoModal.open { display: flex; }
-#photoModal .panel{
-  background:#fff; border-radius:12px; width:min(1000px,92vw);
-  max-height:90vh; overflow:hidden; box-shadow:0 12px 28px rgba(16,24,40,.25);
-  display:flex; flex-direction:column;
-}
-#photoModal .viewer{
-  background:#000; display:flex; align-items:center; justify-content:center;
-  min-height:50vh;
-}
-#photoModal .viewer img{
-  max-width:100%; max-height:80vh; object-fit:contain; display:block;
-}
-#photoModal .bar{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 12px; border-top:1px solid #e5e7eb;
-}
-#photoModal .bar .meta{ font-weight:700; color:#111827 }
-#photoModal .bar .actions{ display:flex; gap:8px }
-#photoModal .btn{
-  border:0; border-radius:10px; padding:8px 12px; font-weight:800; cursor:pointer;
-}
-#photoModal .btn-primary{ background:#111827; color:#fff }
-#photoModal .btn-accent{ background:#d11e2b; color:#fff }
-  
+    /* Modal viewer */
+    #photoModal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,.6); z-index: 1000;
+    }
+    #photoModal.open { display: flex; }
+    #photoModal .panel{
+      background:#fff; border-radius:12px; width:min(1000px,92vw);
+      max-height:90vh; overflow:hidden; box-shadow:0 12px 28px rgba(16,24,40,.25);
+      display:flex; flex-direction:column;
+    }
+    #photoModal .viewer{
+      background:#000; display:flex; align-items:center; justify-content:center;
+      min-height:50vh;
+    }
+    #photoModal .viewer img{
+      max-width:100%; max-height:80vh; object-fit:contain; display:block;
+    }
+    #photoModal .bar{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:10px 12px; border-top:1px solid #e5e7eb;
+    }
+    #photoModal .bar .meta{ font-weight:700; color:#111827 }
+    #photoModal .bar .actions{ display:flex; gap:8px }
+    #photoModal .btn{
+      border:0; border-radius:10px; padding:8px 12px; font-weight:800; cursor:pointer;
+    }
+    #photoModal .btn-primary{ background:#111827; color:#fff }
+    #photoModal .btn-accent{ background:#d11e2b; color:#fff }
   </style>
 </head>
 <body>
@@ -113,268 +110,245 @@
     <div id="empty" class="empty" style="display:none">No photos found for these filters.</div>
   </div>
 
-  <script>
-    (function(){
-      const db = firebase.firestore();
-      const auth = firebase.auth();
-
-      // ---- AEST day helpers (Brisbane, no DST) ----
-      function toAestDate(date) {
-        // Coerce from <input type="date"> (YYYY-MM-DD) or fallback to today
-        if (!date) return new Date();
-        const [y,m,d] = String(date).split('-').map(Number);
-        if (y && m && d) return new Date(Date.UTC(y, m-1, d, 14, 0, 0)); // set so UTC day maps to AEST
-        return new Date();
-      }
-      function aestRange(startISO, endISO) {
-        const start = toAestDate(startISO); // 00:00 AEST of that day
-        const end   = toAestDate(endISO);   // end day inclusive
-        // Convert AEST start-of-day to exact UTC instants
-        const START = new Date(start.getTime() - 10*60*60*1000); // AEST=UTC+10
-        const END   = new Date(end.getTime() - 10*60*60*1000 + (24*60*60*1000)); // next day
-        return { START, END };
-      }
-      function upper(s){ return String(s||'').trim().toUpperCase(); }
-
-      // ---- UI elements ----
-      const siteIdInput  = document.getElementById('siteIdInput');
-      const operatorSel  = document.getElementById('operatorInput');
-      const startInput   = document.getElementById('startInput');
-      const endInput     = document.getElementById('endInput');
-      const limitInput   = document.getElementById('limitInput');
-      const applyBtn     = document.getElementById('applyBtn');
-      const clearBtn     = document.getElementById('clearBtn');
-      const resultsEl    = document.getElementById('results');
-      const emptyEl      = document.getElementById('empty');
-      const whoami       = document.getElementById('whoami');
-
-      // Default date window: last 30 days
-      const today = new Date();
-      const iso = (d) => d.toISOString().slice(0,10);
-      const d30 = new Date(today.getTime() - 29*24*60*60*1000);
-      startInput.value = iso(d30);
-      endInput.value   = iso(today);
-
-      // --- replace render() with this version ---
-function render(photos){
-  const resultsEl = document.getElementById('results');
-  const emptyEl   = document.getElementById('empty');
-  resultsEl.innerHTML = '';
-
-  if (!photos.length){
-    emptyEl.style.display = '';
-    return;
-  }
-  emptyEl.style.display = 'none';
-
-  for (const p of photos){
-    // Card container
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.title = 'Click to view';
-
-    // Thumbnail (no visible link text)
-    const img = document.createElement('img');
-    img.src = p.url;
-    img.alt = p.siteId || 'Site photo';
-    img.loading = 'lazy';
-    card.appendChild(img);
-
-    // Meta (site + when + operator)
-    const info = document.createElement('div');
-    info.className = 'info';
-    const line1 = document.createElement('div');
-    line1.innerHTML = `<span class="pill">${p.siteId || 'UNKNOWN'}</span> ${p.when || ''}`;
-    const line2 = document.createElement('div');
-    line2.innerHTML = `<span class="pill">By</span> ${p.operatorEmail || p.uploadedBy || p.operatorUid || 'unknown'}`;
-    info.appendChild(line1);
-    info.appendChild(line2);
-    card.appendChild(info);
-
-    // Click -> open modal
-    card.addEventListener('click', () => openPhotoModal(p));
-
-    resultsEl.appendChild(card);
-  }
-}
-
-// --- helpers for the modal viewer ---
-function fileNameFromPath(s){
-  const t = String(s||''); const ix = t.lastIndexOf('/'); return ix >= 0 ? t.slice(ix+1) : (t || 'photo.jpg');
-}
-function openPhotoModal(p){
-  const modal = document.getElementById('photoModal');
-  const img   = document.getElementById('modalImg');
-  const meta  = document.getElementById('modalMeta');
-  const openL = document.getElementById('modalOpen');
-  const dlL   = document.getElementById('modalDownload');
-
-  img.src = p.url;
-  meta.textContent = `${p.siteId || ''}  ${p.when || ''}  —  ${p.operatorEmail || p.uploadedBy || p.operatorUid || ''}`;
-  openL.href = p.url;
-  dlL.href   = p.url;
-  dlL.setAttribute('download', fileNameFromPath(p.storagePath) || 'photo.jpg');
-
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden','false');
-  document.body.style.overflow = 'hidden';
-}
-(function wireModal(){
-  const modal = document.getElementById('photoModal');
-  const close = document.getElementById('modalClose');
-  function closeModal(){
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden','true');
-    document.body.style.overflow = '';
-  }
-  close.addEventListener('click', closeModal);
-  modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
-  window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
-  }
- }
-
-      // ---- Normalizer ----
-      function normalize(doc){
-        const d = doc.data() || {};
-        const ts = d.createdAt?.toDate?.() || d.timestamp?.toDate?.() || d.created_at?.toDate?.() || null;
-        const when = ts ? ts.toLocaleString('en-AU', { timeZone:'Australia/Brisbane', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
-        return {
-          id: doc.id,
-          url: d.url || d.downloadURL || '',
-          storagePath: d.storagePath || d.path || '',
-          siteId: upper(d.siteId || d.site_id || ''),
-          uploadedBy: d.uploadedBy || d.uploader || null,
-          operatorUid: d.operatorUid || d.userId || null,
-          operatorEmail: d.operatorEmail || d.uEmail || null,
-          whenTs: ts ? ts.getTime() : 0,
-          when
-        };
-      }
-
-      // ---- Query both collections; be tolerant with filters ----
-      async function load(){
-        const limitN = parseInt(limitInput.value || '24', 10);
-        const siteFilter = upper(siteIdInput.value);
-        const opFilter   = operatorSel.value || '';
-
-        const { START, END } = aestRange(startInput.value, endInput.value);
-
-        // Build a base query that always works:
-        //   - order by time
-        //   - date range
-        // Operator/site filters are applied client-side to avoid missing data due to field name drift.
-        async function fetchColl(name){
-          let q = db.collection(name).orderBy('createdAt', 'desc');
-          // many old docs may have timestamp instead of createdAt -> fallback query if needed
-          try {
-            q = q.where('createdAt', '>=', START).where('createdAt', '<', END).limit(limitN * 5);
-            const snap = await q.get();
-            return { snap, used: 'createdAt' };
-          } catch (e) {
-            // try with 'timestamp'
-            try{
-              let q2 = db.collection(name).orderBy('timestamp', 'desc')
-                         .where('timestamp','>=',START).where('timestamp','<',END).limit(limitN * 5);
-              const snap2 = await q2.get();
-              return { snap: snap2, used: 'timestamp' };
-            }catch(e2){
-              // last resort: no where, just latest N
-              const snap3 = await db.collection(name).orderBy('createdAt','desc').limit(limitN * 5).get();
-              return { snap: snap3, used: 'fallback' };
-            }
-          }
-        }
-
-        // Run both in parallel
-        const [a, b] = await Promise.all([
-          fetchColl('site_photos'),
-          fetchColl('sitePhotos')  // camelCase mirror (if ever used)
-        ]);
-
-        // Merge + normalize
-        const all = [];
-        a.snap.forEach(d => all.push(normalize(d)));
-        b.snap.forEach(d => all.push(normalize(d)));
-
-        // De-dupe by storagePath or id
-        const uniq = [];
-        const seen = new Set();
-        for (const p of all){
-          const key = p.storagePath || p.id;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          uniq.push(p);
-        }
-
-        // Client-side filters (tolerant)
-        let filtered = uniq.filter(p => {
-          const inRange = (p.whenTs >= START.getTime() && p.whenTs < END.getTime()) || p.whenTs === 0;
-          if (!inRange) return false;
-
-          if (siteFilter && p.siteId !== siteFilter) return false;
-
-          if (opFilter) {
-            // allow match by UID or email text
-            const txt = (p.operatorEmail || p.uploadedBy || p.operatorUid || '').toString().toLowerCase();
-            if (!txt.includes(opFilter.toLowerCase())) return false;
-          }
-          return true;
-        });
-
-        // sort newest first
-        filtered.sort((x,y)=> y.whenTs - x.whenTs);
-
-        // Limit final render
-        render(filtered.slice(0, limitN));
-
-        // populate operator dropdown from recent docs (first load only)
-        if (operatorSel.children.length === 1) {
-          const ops = new Set();
-          filtered.slice(0, 200).forEach(p => {
-            const s = (p.operatorEmail || p.uploadedBy || p.operatorUid || '').toString();
-            if (s) ops.add(s);
-          });
-          [...ops].slice(0,50).forEach(v=>{
-            const opt = document.createElement('option');
-            opt.value = v; opt.textContent = v;
-            operatorSel.appendChild(opt);
-          });
-        }
-      }
-
-      // Wire UI
-      applyBtn.addEventListener('click', load);
-      clearBtn.addEventListener('click', () => {
-        siteIdInput.value = '';
-        operatorSel.value = '';
-        const today = new Date();
-        const d30   = new Date(today.getTime() - 29*24*60*60*1000);
-        startInput.value = today.toISOString().slice(0,10); // reset to today..today for quick focus
-        endInput.value   = today.toISOString().slice(0,10);
-        load();
-      });
-
-      auth.onAuthStateChanged(u => {
-        whoami.textContent = u?.email || '';
-        load();
-      });
-    })();
-  </script>
-
   <!-- Photo modal -->
-<div id="photoModal" aria-hidden="true">
-  <div class="panel" role="dialog" aria-modal="true">
-    <div class="viewer"><img id="modalImg" alt="Site photo" /></div>
-    <div class="bar">
-      <div class="meta" id="modalMeta"></div>
-      <div class="actions">
-        <a id="modalOpen" target="_blank" rel="noopener" class="btn btn-primary">Open original</a>
-        <a id="modalDownload" class="btn btn-accent" download>Download</a>
-        <button id="modalClose" class="btn">Close</button>
+  <div id="photoModal" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true">
+      <div class="viewer"><img id="modalImg" alt="Site photo" /></div>
+      <div class="bar">
+        <div class="meta" id="modalMeta"></div>
+        <div class="actions">
+          <a id="modalOpen" target="_blank" rel="noopener" class="btn btn-primary">Open original</a>
+          <a id="modalDownload" class="btn btn-accent" download>Download</a>
+          <button id="modalClose" class="btn">Close</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
+  <script>
+  (function(){
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // ---- AEST helpers (Brisbane, no DST) ----
+    function toDateFromISO(d) {
+      if (!d) return new Date();
+      const [y,m,day] = String(d).split('-').map(Number);
+      if (y && m && day) return new Date(Date.UTC(y, m-1, day, 14, 0, 0)); // maps to 00:00 AEST
+      return new Date();
+    }
+    function aestRange(startISO, endISO) {
+      const start = toDateFromISO(startISO);
+      const end   = toDateFromISO(endISO);
+      const START = new Date(start.getTime() - 10*60*60*1000);                        // AEST=UTC+10
+      const END   = new Date(end.getTime() - 10*60*60*1000 + 24*60*60*1000);          // inclusive end
+      return { START, END };
+    }
+    function upper(s){ return String(s||'').trim().toUpperCase(); }
+    const fmtAEST = (ms) => new Date(ms).toLocaleString('en-AU', { timeZone:'Australia/Brisbane', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+    // ---- UI elements ----
+    const siteIdInput  = document.getElementById('siteIdInput');
+    const operatorSel  = document.getElementById('operatorInput');
+    const startInput   = document.getElementById('startInput');
+    const endInput     = document.getElementById('endInput');
+    const limitInput   = document.getElementById('limitInput');
+    const applyBtn     = document.getElementById('applyBtn');
+    const clearBtn     = document.getElementById('clearBtn');
+    const resultsEl    = document.getElementById('results');
+    const emptyEl      = document.getElementById('empty');
+    const whoami       = document.getElementById('whoami');
+
+    // Default date window: last 30 days
+    const today = new Date();
+    const iso = (d) => d.toISOString().slice(0,10);
+    const d30 = new Date(today.getTime() - 29*24*60*60*1000);
+    startInput.value = iso(d30);
+    endInput.value   = iso(today);
+
+    // --- Render list (thumbnails only) ---
+    function render(photos){
+      resultsEl.innerHTML = '';
+      if (!photos.length){
+        emptyEl.style.display = '';
+        return;
+      }
+      emptyEl.style.display = 'none';
+
+      for (const p of photos){
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.title = 'Click to view';
+
+        const img = document.createElement('img');
+        img.src = p.url;
+        img.alt = p.siteId || 'Site photo';
+        img.loading = 'lazy';
+        card.appendChild(img);
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        const line1 = document.createElement('div');
+        line1.innerHTML = `<span class="pill">${p.siteId || 'UNKNOWN'}</span> ${p.when || ''}`;
+        const line2 = document.createElement('div');
+        line2.innerHTML = `<span class="pill">By</span> ${p.operatorEmail || p.uploadedBy || p.operatorUid || 'unknown'}`;
+        info.appendChild(line1);
+        info.appendChild(line2);
+        card.appendChild(info);
+
+        card.addEventListener('click', () => openPhotoModal(p));
+        resultsEl.appendChild(card);
+      }
+    }
+
+    // --- Modal helpers ---
+    function fileNameFromPath(s){
+      const t = String(s||''); const ix = t.lastIndexOf('/'); return ix >= 0 ? t.slice(ix+1) : (t || 'photo.jpg');
+    }
+    function openPhotoModal(p){
+      const modal = document.getElementById('photoModal');
+      const img   = document.getElementById('modalImg');
+      const meta  = document.getElementById('modalMeta');
+      const openL = document.getElementById('modalOpen');
+      const dlL   = document.getElementById('modalDownload');
+
+      img.src = p.url;
+      meta.textContent = `${p.siteId || ''}  ${p.when || ''}  —  ${p.operatorEmail || p.uploadedBy || p.operatorUid || ''}`;
+      openL.href = p.url;
+      dlL.href   = p.url;
+      dlL.setAttribute('download', fileNameFromPath(p.storagePath) || 'photo.jpg');
+
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+    }
+    (function wireModal(){
+      const modal = document.getElementById('photoModal');
+      const close = document.getElementById('modalClose');
+      function closeModal(){
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden','true');
+        document.body.style.overflow = '';
+      }
+      close.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
+      window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+    })();
+
+    // --- Normalizer ---
+    function normalize(doc){
+      const d = doc.data() || {};
+      const ts = d.createdAt?.toDate?.() || d.timestamp?.toDate?.() || d.created_at?.toDate?.() || null;
+      const whenTs = ts ? ts.getTime() : 0;
+      const when = whenTs ? fmtAEST(whenTs) : '';
+      return {
+        id: doc.id,
+        url: d.url || d.downloadURL || '',
+        storagePath: d.storagePath || d.path || '',
+        siteId: upper(d.siteId || d.site_id || ''),
+        uploadedBy: d.uploadedBy || d.uploader || null,
+        operatorUid: d.operatorUid || d.userId || null,
+        operatorEmail: d.operatorEmail || d.uEmail || null,
+        whenTs, when
+      };
+    }
+
+    // --- Fetch tolerant (createdAt | timestamp; two collections) ---
+    async function load(){
+      const limitN = parseInt(limitInput.value || '24', 10);
+      const siteFilter = upper(siteIdInput.value);
+      const opFilter   = operatorSel.value || '';
+      const { START, END } = aestRange(startInput.value, endInput.value);
+
+      async function fetchColl(name){
+        // Prefer createdAt range; fall back to timestamp; then fallback to latest docs
+        try{
+          let q = db.collection(name).orderBy('createdAt', 'desc')
+                     .where('createdAt', '>=', START).where('createdAt','<', END)
+                     .limit(limitN * 5);
+          const snap = await q.get();
+          return snap;
+        }catch(e1){
+          try{
+            let q2 = db.collection(name).orderBy('timestamp', 'desc')
+                       .where('timestamp','>=', START).where('timestamp','<', END)
+                       .limit(limitN * 5);
+            const snap2 = await q2.get();
+            return snap2;
+          }catch(e2){
+            const snap3 = await db.collection(name).orderBy('createdAt','desc').limit(limitN * 5).get();
+            return snap3;
+          }
+        }
+      }
+
+      const [a, b] = await Promise.all([
+        fetchColl('site_photos'),
+        fetchColl('sitePhotos')
+      ]);
+
+      const all = [];
+      a.forEach(d => all.push(normalize(d)));
+      b.forEach(d => all.push(normalize(d)));
+
+      // De-dupe by storagePath or id
+      const seen = new Set();
+      const uniq = [];
+      for (const p of all){
+        const key = p.storagePath || p.id;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniq.push(p);
+      }
+
+      // Client-side filters + sort newest first
+      let filtered = uniq.filter(p => {
+        const inRange = (p.whenTs >= START.getTime() && p.whenTs < END.getTime()) || p.whenTs === 0;
+        if (!inRange) return false;
+        if (siteFilter && p.siteId !== siteFilter) return false;
+        if (opFilter) {
+          const txt = (p.operatorEmail || p.uploadedBy || p.operatorUid || '').toString().toLowerCase();
+          if (!txt.includes(opFilter.toLowerCase())) return false;
+        }
+        return p.url;
+      });
+      filtered.sort((x,y)=> y.whenTs - x.whenTs);
+
+      // Limit final render
+      render(filtered.slice(0, limitN));
+
+      // Populate operator dropdown (first load only)
+      if (operatorSel.children.length === 1) {
+        const ops = new Set();
+        uniq.slice(0, 300).forEach(p => {
+          const s = (p.operatorEmail || p.uploadedBy || p.operatorUid || '').toString();
+          if (s) ops.add(s);
+        });
+        [...ops].slice(0,80).forEach(v=>{
+          const opt = document.createElement('option');
+          opt.value = v; opt.textContent = v;
+          operatorSel.appendChild(opt);
+        });
+      }
+    }
+
+    // Wire UI
+    applyBtn.addEventListener('click', load);
+    clearBtn.addEventListener('click', () => {
+      siteIdInput.value = '';
+      operatorSel.value = '';
+      const t = new Date();
+      startInput.value = iso(t);
+      endInput.value   = iso(t);
+      load();
+    });
+
+    // Start after auth (so we can show whoami and ensure rules allow list)
+    auth.onAuthStateChanged(u => {
+      whoami.textContent = u?.email || '';
+      load();
+    });
+  })();
+  </script>
 </body>
 </html>

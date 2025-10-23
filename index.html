@@ -6,7 +6,7 @@
   <title>Bayside – Dashboard</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="dashboard.css?v=2025-10-23">
 
   <!-- Page-specific styles for the Tasks card + RA modal -->
   <style>
@@ -14,55 +14,28 @@
       --ink:#0f172a; --muted:#e5e7eb; --bg:#f6f7fb; --card:#ffffff;
       --accent:#d11e2b; --accent-600:#b71a24;
     }
-
-    /* Card (delegate.html look) */
-    .card{
-      background:var(--card);
-      border:1px solid var(--muted);
-      border-radius:16px;
-      box-shadow:0 8px 26px rgba(16,24,40,.08);
-    }
-    .card h3{
-      margin:14px 16px 10px;
-      font-size:16px; font-weight:800; color:#0f172a;
-      display:flex; align-items:center; gap:10px;
-    }
-    .card h3::before{
-      content:""; width:10px; height:10px; border-radius:50%;
-      background:var(--accent); display:inline-block;
-    }
+    .card{ background:var(--card); border:1px solid var(--muted); border-radius:16px; box-shadow:0 8px 26px rgba(16,24,40,.08); }
+    .card h3{ margin:14px 16px 10px; font-size:16px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:10px; }
+    .card h3::before{ content:""; width:10px; height:10px; border-radius:50%; background:var(--accent); display:inline-block; }
     .card .body{ padding:0 16px 16px; }
-
-    /* Tasks list inside the card */
     .tasks-list{ display:grid; gap:8px; }
-    .task-row{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
-      padding:12px; border:1px solid #e2e8f0; border-radius:12px; background:#fff;
-    }
+    .task-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:12px; border:1px solid #e2e8f0; border-radius:12px; background:#fff; }
     .task-main{ display:flex; flex-direction:column; flex:1 1 auto; min-width:0; }
     .task-title{ font-weight:800; color:#111827; }
     .task-meta{ color:#64748b; font-size:13px; margin-top:2px; }
-
     .badge{ border-radius:999px; padding:4px 8px; font-weight:800; font-size:12px; white-space:nowrap; }
     .badge-amber{ background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca; }
     .badge-slate{ background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; }
-
-    .task-note{
-      margin-top:6px; padding:8px 10px;
-      background:#f8fafc; border-left:3px solid var(--accent);
-      border-radius:8px; color:#334155; font-size:13px; white-space:pre-wrap;
-    }
-
+    .task-note{ margin-top:6px; padding:8px 10px; background:#f8fafc; border-left:3px solid var(--accent); border-radius:8px; color:#334155; font-size:13px; white-space:pre-wrap; }
     .task-actions{ display:inline-flex; align-items:center; gap:8px; flex-shrink:0; white-space:nowrap; }
     .btn-small{ padding:6px 10px; font-size:13px; border-radius:8px; }
 
-    /* RA modal (same as before) */
-    :root{ --ink:#0f172a; --muted:#e2e8f0; --accent:#d11e2b; --accent-600:#b71a24; }
+    /* RA modal */
     .ra-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; z-index:9999; }
     .ra-backdrop.show{ display:flex; }
     .ra-modal{ width:min(900px,94vw); max-height:90vh; overflow:auto; background:#fff; border:1px solid var(--muted); border-radius:16px; box-shadow:0 16px 44px rgba(16,24,40,.35); }
     .ra-header{ position:sticky; top:0; background:#fff; border-bottom:1px solid #eef2f7; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .ra-header h3{ margin:0; font-size:18px; font-weight:800; color:var(--ink); }
+    .ra-header h3{ margin:0; font-size:18px; font-weight:800; color:#0f172a; }
     .ra-body{ padding:16px; display:grid; gap:12px; }
     .ra-row{ display:flex; align-items:flex-start; gap:10px; }
     .ra-note{ font-size:13px; color:#334155; background:#f8fafc; border:1px solid #e2e8f0; border-left:3px solid var(--accent); border-radius:8px; padding:8px 10px; }
@@ -81,11 +54,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="firebase-init.js"></script>
-  <script src="auth-guard.js"></script>
   <script src="firebase-init.js?v=2025-10-23"></script>
-<script src="auth-guard.js?v=2025-10-23"></script>
-<link rel="stylesheet" href="dashboard.css?v=2025-10-23">
+  <script src="auth-guard.js?v=2025-10-23"></script>
 
   <!-- Risk Assessment Modal -->
   <div id="riskBackdrop" class="ra-backdrop" aria-modal="true" role="dialog" aria-hidden="true">
@@ -205,12 +175,11 @@
     })();
   </script>
 
-  <!-- Live “remaining” counter (mirrors assignments.html / assignedparks.html logic) -->
+  <!-- Live “remaining” counter -->
   <script>
   (function () {
     const db = firebase.firestore();
 
-    // ---------- helpers ----------
     const up = (x) => String(x || '').trim().toUpperCase();
 
     function parseIdList(list){
@@ -264,8 +233,7 @@
       } catch (e) { console.warn('markTaskStarted failed:', e); }
     }
 
-    // ---------- live work_log streams per task (operator-scoped) ----------
-    const taskStreams = new Map(); // taskId -> { ids:[], latest:{sid:{status,_t}}, unsub:[] }
+    const taskStreams = new Map();
     let latestTasks = [];
 
     function ensureTaskStreams(task){
@@ -276,7 +244,6 @@
       const same = ids.length===st.ids.length && ids.every(x => st.ids.includes(x));
       if (same) return;
 
-      // teardown old
       st.unsub.forEach(u=>{ try{u();}catch{} }); st.unsub=[]; st.ids = ids; st.latest = {};
 
       if (!ids.length) return;
@@ -293,13 +260,10 @@
             const cur = st.latest[sid];
             if (!cur || t > cur._t) st.latest[sid] = { status: stt, _t: t };
           });
-          renderTasks(latestTasks); // repaint counts live
+          renderTasks(latestTasks);
         };
-        const onErr = (e)=> {
-          console.warn('work_logs listener error (dashboard):', e);
-        };
+        const onErr = (e)=> { console.warn('work_logs listener error (dashboard):', e); };
 
-        // Prefer operator-scoped logs to match the operator's sidebar exactly
         try{
           const u = db.collection('work_logs')
                       .where('operatorUid','==', task.userId)
@@ -307,7 +271,6 @@
                       .onSnapshot(handler, onErr);
           st.unsub.push(u);
         }catch(e){
-          // Fallback (e.g., missing composite index): rely on rules/admin perms
           const u = db.collection('work_logs')
                       .where('siteId','in', batch)
                       .onSnapshot(handler, onErr);
@@ -328,16 +291,12 @@
 
     function isCompletedByOperator(t, id){
       const sid = up(id);
-
-      // 1) Latest operator-scoped log
       const live = taskStreams.get(t.id)?.latest?.[sid]?.status || '';
       if (live === 'completed') return true;
 
-      // 2) Assignment mirror (admins may write perSite)
       const ps = getPerSiteForId(t.perSite || {}, sid) || {};
       if ((ps.status||'').toLowerCase() === 'completed') return true;
 
-      // 3) Static completed arrays on doc
       const arrays = [t.completedSiteIds, t.completedIds];
       for (const arr of arrays){
         const set = new Set(parseIdList(arr));
@@ -351,7 +310,6 @@
       return base.filter(id => !isCompletedByOperator(t, id));
     }
 
-    // ---------- UI ----------
     function renderTasks(items){
       const el = document.getElementById('tasks-list');
       if (!el) return;
@@ -359,7 +317,7 @@
       const rows = items.map(t => {
         const remaining = remainingIds(t);
         return { t, remaining, total: baseIdsFromTask(t).length };
-      }).filter(x => x.total > 0); // show even when 0 remaining (optional: change to >0 to hide finished)
+      }).filter(x => x.total > 0);
 
       el.innerHTML = '';
       if (!rows.length){
@@ -377,13 +335,11 @@
         const left = document.createElement('div');
         left.className = 'task-main';
 
-        // Title: Zone X - Name
         const title = document.createElement('div');
         title.className = 'task-title';
-        // AFTER (adds autolock=1)
         const dest = remaining.length
-        ? `AssignedParks.html?focus=${encodeURIComponent(remaining.join(','))}&task=${encodeURIComponent(t.id)}&autolock=1`
-        : `AssignedParks.html?task=${encodeURIComponent(t.id)}&autolock=1`;
+          ? `AssignedParks.html?focus=${encodeURIComponent(remaining.join(','))}&task=${encodeURIComponent(t.id)}&autolock=1`
+          : `AssignedParks.html?task=${encodeURIComponent(t.id)}&autolock=1`;
 
         const a = document.createElement('a');
         a.className = 'task-link';
@@ -398,7 +354,6 @@
         title.appendChild(a);
         left.appendChild(title);
 
-        // Meta: **live** remaining count (matches operator sidebar)
         const meta = document.createElement('div');
         meta.className = 'task-meta';
         const dueDate = t.dueDate?.toDate ? t.dueDate.toDate()
@@ -407,7 +362,6 @@
         meta.textContent = `${remaining.length} remaining of ${total}${dueTxt}`;
         left.appendChild(meta);
 
-        // Remaining list
         if (remaining.length){
           const note = document.createElement('div');
           note.className = 'task-note';
@@ -415,7 +369,6 @@
           left.appendChild(note);
         }
 
-        // Right actions
         const right = document.createElement('div');
         right.className = 'task-actions';
 
@@ -442,7 +395,6 @@
       });
     }
 
-    // Main listener (only tasks for the signed-in operator)
     window.startTasksListener = function (uid) {
       return db.collection('assignments')
         .where('userId', '==', uid)
@@ -453,12 +405,11 @@
             if ((d.status || 'assigned').toLowerCase() === 'completed') return;
             const task = { id: doc.id, ...d };
             items.push(task);
-            ensureTaskStreams(task); // attach/refresh operator-scoped work_logs listeners
+            ensureTaskStreams(task);
           });
 
           teardownMissingStreams(items.map(x => x.id));
 
-          // Sort: due first, then newest created
           items.sort((a, b) => {
             const ad = a.dueDate?.toDate ? a.dueDate.toDate() : (a.dueDate instanceof Date ? a.dueDate : null);
             const bd = b.dueDate?.toDate ? b.dueDate.toDate() : (b.dueDate instanceof Date ? b.dueDate : null);
@@ -571,6 +522,7 @@
       setBlockedUI(false);
     });
 
+    // keep the modal from closing via backdrop/escape
     backdrop.addEventListener('click', (e)=> { if (e.target===backdrop) e.preventDefault(); });
     document.addEventListener('keydown', (e)=> { if (backdrop.classList.contains('show') && e.key==='Escape') e.preventDefault(); });
 

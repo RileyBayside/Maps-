@@ -1,236 +1,285 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <title>Site Photos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bayside — Photos</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <link rel="stylesheet" href="style.css" />
 
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{ --ink:#0f172a; --muted:#e5e7eb; --card:#fff; --bg:#f6f7fb; --accent:#d11e2b; --accent-600:#b71a24; }
-    body{ margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
-    .container{ max-width:1100px; margin:22px auto; padding:0 16px }
-    .hdr{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px }
-    .title{ font-weight:800; font-size:22px }
-    .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
-    input,button,select{ border:1px solid var(--muted); border-radius:10px; padding:10px 12px; font-size:14px; background:#fff }
-    .btn{ cursor:pointer; font-weight:800 }
-    .btn-accent{ background:var(--accent); color:#fff; border:0 }
-    .btn-accent:hover{ background:var(--accent-600) }
-    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap:12px; margin-top:14px }
-    .card{ background:var(--card); border:1px solid var(--muted); border-radius:12px; overflow:hidden }
-    .ph{ width:100%; aspect-ratio: 16/10; object-fit:cover; display:block }
-    .meta{ display:flex; justify-content:space-between; gap:8px; padding:8px 10px; font-size:12px; align-items:center }
-    .muted{ color:#64748b }
-    .danger{ color:#b91c1c }
-    .small{ font-size:12px }
-    .pill{ padding:6px 8px; border:1px solid var(--muted); border-radius:10px; background:#fff }
-    .warn{ color:#b45309 }
+    :root{
+      --ink:#0f172a; --muted:#e5e7eb; --card:#ffffff;
+      --accent:#d11e2b; --accent-600:#b71a24; --soft:#f8fafc;
+    }
+    body{ background:#f6f7fb; color:#0f172a; font-family:Inter,system-ui,Arial,sans-serif }
+    .container{ max-width:1100px; margin:28px auto; padding:0 16px }
+    h1{ font-size:28px; font-weight:800; margin:0 0 16px }
+    .toolbar{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+      background:#fff; border:1px solid var(--muted); border-radius:12px; padding:10px;
+      box-shadow:0 8px 26px rgba(16,24,40,.06);
+    }
+    .toolbar input[type="text"], .toolbar select, .toolbar input[type="date"]{
+      appearance:none; border:1px solid var(--muted); border-radius:10px; background:#fff;
+      padding:8px 10px; font-weight:600; color:#111827;
+    }
+    .btn{ border:0; border-radius:10px; padding:8px 14px; font-weight:800; cursor:pointer; }
+    .btn-apply{ background:var(--accent); color:#fff }
+    .btn-apply:hover{ background:var(--accent-600) }
+    .btn-clear{ background:#111827; color:#fff }
+    .meta{ margin-left:auto; font-size:12px; color:#475569 }
+    .back{ float:right; font-weight:800; margin-top:-4px; }
+    .grid{
+      margin-top:16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px;
+    }
+    .card{
+      background:#fff; border:1px solid var(--muted); border-radius:12px; overflow:hidden;
+      box-shadow:0 8px 26px rgba(16,24,40,.06);
+    }
+    .card img{ width:100%; height:160px; object-fit:cover; display:block }
+    .card .info{ padding:8px 10px; display:grid; gap:4px; font-weight:700 }
+    .pill{ display:inline-block; background:#f1f5f9; border:1px solid #e5e7eb; border-radius:999px; padding:2px 8px; font-size:12px }
+    .empty{ margin:18px 2px; color:#64748b; font-weight:700 }
   </style>
 </head>
 <body>
-
-  <!-- Firebase compat SDKs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
   <script src="firebase-init.js"></script>
   <script src="auth-guard.js"></script>
 
   <div class="container">
-    <div class="hdr">
-      <div class="title">Site Photos</div>
-      <div class="row">
-        <a href="admin.html" class="btn">← Back to Admin</a>
-      </div>
-    </div>
+    <a href="admin.html" class="back">← Back to Admin</a>
+    <h1>Site Photos</h1>
 
-    <!-- Filters -->
-    <div class="row" style="gap:10px">
-      <input id="siteId" class="pill" placeholder="Site ID (e.g., M0123)" />
-      <select id="opSel" class="pill"><option value="">Any operator</option></select>
-      <input id="startDate" class="pill" type="date" />
-      <input id="endDate" class="pill" type="date" />
-      <select id="countSel" class="pill">
-        <option value="24" selected>Limit 24</option>
+    <div class="toolbar">
+      <input id="siteIdInput" type="text" placeholder="Site ID (e.g., M0123)" />
+      <select id="operatorInput">
+        <option value="">Any operator</option>
+      </select>
+      <input id="startInput" type="date" />
+      <input id="endInput" type="date" />
+      <select id="limitInput">
+        <option value="24">Limit 24</option>
         <option value="60">Limit 60</option>
         <option value="120">Limit 120</option>
+        <option value="200">Limit 200</option>
       </select>
-      <button id="loadBtn" class="btn btn-accent">Apply</button>
-      <button id="clearBtn" class="btn">Clear</button>
-      <span id="who" class="small muted">—</span>
+      <button class="btn btn-apply" id="applyBtn">Apply</button>
+      <button class="btn btn-clear" id="clearBtn">Clear</button>
+      <div id="whoami" class="meta"></div>
     </div>
 
-    <div id="indexMsg" class="small warn" style="margin-top:8px; display:none"></div>
-
-    <div id="grid" class="grid"></div>
+    <div id="results" class="grid"></div>
+    <div id="empty" class="empty" style="display:none">No photos found for these filters.</div>
   </div>
 
   <script>
-  (function(){
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const storage = firebase.storage();
+    (function(){
+      const db = firebase.firestore();
+      const auth = firebase.auth();
 
-    const siteInput = document.getElementById('siteId');
-    const opSel     = document.getElementById('opSel');
-    const startEl   = document.getElementById('startDate');
-    const endEl     = document.getElementById('endDate');
-    const countSel  = document.getElementById('countSel');
-    const grid      = document.getElementById('grid');
-    const who       = document.getElementById('who');
-    const indexMsg  = document.getElementById('indexMsg');
-
-    let currentUser = null;
-    let isAdmin = false;
-    auth.onAuthStateChanged(async (u)=>{
-      currentUser = u;
-      if (!u) return;
-      who.textContent = (u.email || u.uid);
-      try{
-        const token = await u.getIdTokenResult(true);
-        isAdmin = token.claims && token.claims.role === 'admin';
-        if (isAdmin) who.textContent += ' · admin';
-      }catch{}
-      preloadOperators();
-    });
-
-    // Populate operator list from users (operators + snippers)
-    async function preloadOperators(){
-      try{
-        const snap = await db.collection('users')
-          .where('role', 'in', ['operator','snipper'])
-          .get();
-        const opts = ['<option value="">Any operator</option>'];
-        snap.forEach(doc=>{
-          const d = doc.data() || {};
-          const name = d.name || d.username || (d.email ? d.email.split('@')[0] : doc.id);
-          opts.push(`<option value="${doc.id}">${name}</option>`);
-        });
-        opSel.innerHTML = opts.join('');
-      }catch(e){
-        // Fallback: if 'in' query not supported due to index, just ignore and leave "Any operator"
-        console.warn('operator preload', e);
+      // ---- AEST day helpers (Brisbane, no DST) ----
+      function toAestDate(date) {
+        // Coerce from <input type="date"> (YYYY-MM-DD) or fallback to today
+        if (!date) return new Date();
+        const [y,m,d] = String(date).split('-').map(Number);
+        if (y && m && d) return new Date(Date.UTC(y, m-1, d, 14, 0, 0)); // set so UTC day maps to AEST
+        return new Date();
       }
-    }
+      function aestRange(startISO, endISO) {
+        const start = toAestDate(startISO); // 00:00 AEST of that day
+        const end   = toAestDate(endISO);   // end day inclusive
+        // Convert AEST start-of-day to exact UTC instants
+        const START = new Date(start.getTime() - 10*60*60*1000); // AEST=UTC+10
+        const END   = new Date(end.getTime() - 10*60*60*1000 + (24*60*60*1000)); // next day
+        return { START, END };
+      }
+      function upper(s){ return String(s||'').trim().toUpperCase(); }
 
-    function toDateStart(val){
-      if (!val) return null;
-      const d = new Date(val + 'T00:00:00');
-      return d;
-    }
-    function toDateEnd(val){
-      if (!val) return null;
-      const d = new Date(val + 'T23:59:59.999');
-      return d;
-    }
+      // ---- UI elements ----
+      const siteIdInput  = document.getElementById('siteIdInput');
+      const operatorSel  = document.getElementById('operatorInput');
+      const startInput   = document.getElementById('startInput');
+      const endInput     = document.getElementById('endInput');
+      const limitInput   = document.getElementById('limitInput');
+      const applyBtn     = document.getElementById('applyBtn');
+      const clearBtn     = document.getElementById('clearBtn');
+      const resultsEl    = document.getElementById('results');
+      const emptyEl      = document.getElementById('empty');
+      const whoami       = document.getElementById('whoami');
 
-    async function load() {
-      indexMsg.style.display = 'none';
-      grid.innerHTML = 'Loading…';
+      // Default date window: last 30 days
+      const today = new Date();
+      const iso = (d) => d.toISOString().slice(0,10);
+      const d30 = new Date(today.getTime() - 29*24*60*60*1000);
+      startInput.value = iso(d30);
+      endInput.value   = iso(today);
 
-      const siteId = (siteInput.value || '').trim().toUpperCase();
-      const uid    = (opSel.value || '').trim();
-      const start  = toDateStart(startEl.value);
-      const end    = toDateEnd(endEl.value);
-      const limitN = parseInt(countSel.value, 10) || 24;
+      // ---- Render ----
+      function render(photos){
+        resultsEl.innerHTML = '';
+        if (!photos.length){
+          emptyEl.style.display = '';
+          return;
+        }
+        emptyEl.style.display = 'none';
 
-      try{
-        let q = db.collection('site_photos');
+        for (const p of photos){
+          const card = document.createElement('div');
+          card.className = 'card';
 
-        if (siteId) q = q.where('siteId', '==', siteId);
-        if (uid)    q = q.where('uploadedBy', '==', uid);
-        if (start)  q = q.where('createdAt', '>=', start);
-        if (end)    q = q.where('createdAt', '<=', end);
-
-        q = q.orderBy('createdAt', 'desc').limit(limitN);
-
-        const snap = await q.get();
-        if (snap.empty) { grid.textContent = 'No photos found for these filters.'; return; }
-
-        const frag = document.createDocumentFragment();
-        snap.forEach(doc=>{
-          const d = doc.data();
-          const card = document.createElement('div'); card.className = 'card';
+          const a = document.createElement('a');
+          a.href = p.url; a.target = '_blank'; a.rel = 'noopener';
 
           const img = document.createElement('img');
-          img.className = 'ph';
-          img.src = d.url || '';
-          img.alt = d.storagePath || d.siteId || 'photo';
-          img.loading = 'lazy';
-          card.appendChild(img);
+          img.src = p.url; img.alt = p.storagePath || p.siteId;
+          img.loading = 'lazy'; a.appendChild(img);
+          card.appendChild(a);
 
-          const meta = document.createElement('div'); meta.className = 'meta';
-          const left = document.createElement('div'); left.innerHTML =
-            `<div><b>${d.siteId || '—'}</b></div>
-             <div class="muted small">${(d.uploadedBy || '—').slice(0,18)}</div>`;
-          meta.appendChild(left);
+          const info = document.createElement('div');
+          info.className = 'info';
+          const line1 = document.createElement('div');
+          line1.innerHTML = `<span class="pill">${p.siteId || 'UNKNOWN'}</span> ${p.when || ''}`;
+          const line2 = document.createElement('div');
+          line2.innerHTML = `<span class="pill">By</span> ${p.operatorEmail || p.uploadedBy || p.operatorUid || 'unknown'}`;
+          info.appendChild(line1);
+          info.appendChild(line2);
+          card.appendChild(info);
 
-          const right = document.createElement('div'); right.className='row';
-          const open = document.createElement('a'); open.className='btn small'; open.textContent='Open'; open.target='_blank'; open.href=d.url;
-          right.appendChild(open);
-
-          if (isAdmin) {
-            const del = document.createElement('button'); del.className='btn small danger'; del.textContent='Delete';
-            del.onclick = async ()=>{
-              if (!confirm('Delete this photo? This cannot be undone.')) return;
-              try { if (d.storagePath) await storage.ref(d.storagePath).delete(); } catch(e) { console.warn('storage delete', e); }
-              try { await db.collection('site_photos').doc(doc.id).delete(); } catch(e) { console.warn('fs delete', e); }
-              card.remove();
-            };
-            right.appendChild(del);
-          }
-          meta.appendChild(right);
-          card.appendChild(meta);
-          frag.appendChild(card);
-        });
-        grid.innerHTML = '';
-        grid.appendChild(frag);
-      }catch(err){
-        console.warn(err);
-        grid.innerHTML = '';
-        // Helpful message when a composite index is needed
-        if (err && err.code === 9 /* FAILED_PRECONDITION */ && err.message && err.message.includes('index')) {
-          const m = err.message.match(/https?:\/\/[^\s)]+/);
-          indexMsg.innerHTML = `This filter combination needs a Firestore index. ${m ? `Create it here: <a href="${m[0]}" target="_blank" rel="noopener">${m[0]}</a>` : ''}`;
-          indexMsg.style.display = 'block';
-        } else {
-          indexMsg.textContent = 'Failed to load photos. Please adjust filters or try again.';
-          indexMsg.style.display = 'block';
+          resultsEl.appendChild(card);
         }
       }
-    }
 
-    // Buttons
-    document.getElementById('loadBtn').addEventListener('click', load);
-    document.getElementById('clearBtn').addEventListener('click', ()=>{
-      siteInput.value = '';
-      opSel.value = '';
-      startEl.value = '';
-      endEl.value = '';
-      load();
-    });
+      // ---- Normalizer ----
+      function normalize(doc){
+        const d = doc.data() || {};
+        const ts = d.createdAt?.toDate?.() || d.timestamp?.toDate?.() || d.created_at?.toDate?.() || null;
+        const when = ts ? ts.toLocaleString('en-AU', { timeZone:'Australia/Brisbane', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+        return {
+          id: doc.id,
+          url: d.url || d.downloadURL || '',
+          storagePath: d.storagePath || d.path || '',
+          siteId: upper(d.siteId || d.site_id || ''),
+          uploadedBy: d.uploadedBy || d.uploader || null,
+          operatorUid: d.operatorUid || d.userId || null,
+          operatorEmail: d.operatorEmail || d.uEmail || null,
+          whenTs: ts ? ts.getTime() : 0,
+          when
+        };
+      }
 
-    // Pre-fill from query string (?site=M0123&uid=<UID>&from=2025-10-01&to=2025-10-31)
-    const params = new URLSearchParams(location.search);
-    if (params.get('site')) siteInput.value = params.get('site').toUpperCase();
-    if (params.get('uid'))  opSel.value = params.get('uid');
-    if (params.get('from')) startEl.value = params.get('from');
-    if (params.get('to'))   endEl.value = params.get('to');
+      // ---- Query both collections; be tolerant with filters ----
+      async function load(){
+        const limitN = parseInt(limitInput.value || '24', 10);
+        const siteFilter = upper(siteIdInput.value);
+        const opFilter   = operatorSel.value || '';
 
-    // Default to last 30 days if nothing chosen
-    if (!startEl.value && !endEl.value) {
-      const today = new Date();
-      const prior = new Date(today); prior.setDate(prior.getDate() - 30);
-      startEl.value = prior.toISOString().slice(0,10);
-      endEl.value   = today.toISOString().slice(0,10);
-    }
+        const { START, END } = aestRange(startInput.value, endInput.value);
 
-    // initial load
-    setTimeout(load, 200);
-  })();
+        // Build a base query that always works:
+        //   - order by time
+        //   - date range
+        // Operator/site filters are applied client-side to avoid missing data due to field name drift.
+        async function fetchColl(name){
+          let q = db.collection(name).orderBy('createdAt', 'desc');
+          // many old docs may have timestamp instead of createdAt -> fallback query if needed
+          try {
+            q = q.where('createdAt', '>=', START).where('createdAt', '<', END).limit(limitN * 5);
+            const snap = await q.get();
+            return { snap, used: 'createdAt' };
+          } catch (e) {
+            // try with 'timestamp'
+            try{
+              let q2 = db.collection(name).orderBy('timestamp', 'desc')
+                         .where('timestamp','>=',START).where('timestamp','<',END).limit(limitN * 5);
+              const snap2 = await q2.get();
+              return { snap: snap2, used: 'timestamp' };
+            }catch(e2){
+              // last resort: no where, just latest N
+              const snap3 = await db.collection(name).orderBy('createdAt','desc').limit(limitN * 5).get();
+              return { snap: snap3, used: 'fallback' };
+            }
+          }
+        }
+
+        // Run both in parallel
+        const [a, b] = await Promise.all([
+          fetchColl('site_photos'),
+          fetchColl('sitePhotos')  // camelCase mirror (if ever used)
+        ]);
+
+        // Merge + normalize
+        const all = [];
+        a.snap.forEach(d => all.push(normalize(d)));
+        b.snap.forEach(d => all.push(normalize(d)));
+
+        // De-dupe by storagePath or id
+        const uniq = [];
+        const seen = new Set();
+        for (const p of all){
+          const key = p.storagePath || p.id;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          uniq.push(p);
+        }
+
+        // Client-side filters (tolerant)
+        let filtered = uniq.filter(p => {
+          const inRange = (p.whenTs >= START.getTime() && p.whenTs < END.getTime()) || p.whenTs === 0;
+          if (!inRange) return false;
+
+          if (siteFilter && p.siteId !== siteFilter) return false;
+
+          if (opFilter) {
+            // allow match by UID or email text
+            const txt = (p.operatorEmail || p.uploadedBy || p.operatorUid || '').toString().toLowerCase();
+            if (!txt.includes(opFilter.toLowerCase())) return false;
+          }
+          return true;
+        });
+
+        // sort newest first
+        filtered.sort((x,y)=> y.whenTs - x.whenTs);
+
+        // Limit final render
+        render(filtered.slice(0, limitN));
+
+        // populate operator dropdown from recent docs (first load only)
+        if (operatorSel.children.length === 1) {
+          const ops = new Set();
+          filtered.slice(0, 200).forEach(p => {
+            const s = (p.operatorEmail || p.uploadedBy || p.operatorUid || '').toString();
+            if (s) ops.add(s);
+          });
+          [...ops].slice(0,50).forEach(v=>{
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v;
+            operatorSel.appendChild(opt);
+          });
+        }
+      }
+
+      // Wire UI
+      applyBtn.addEventListener('click', load);
+      clearBtn.addEventListener('click', () => {
+        siteIdInput.value = '';
+        operatorSel.value = '';
+        const today = new Date();
+        const d30   = new Date(today.getTime() - 29*24*60*60*1000);
+        startInput.value = today.toISOString().slice(0,10); // reset to today..today for quick focus
+        endInput.value   = today.toISOString().slice(0,10);
+        load();
+      });
+
+      auth.onAuthStateChanged(u => {
+        whoami.textContent = u?.email || '';
+        load();
+      });
+    })();
   </script>
 </body>
 </html>

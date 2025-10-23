@@ -41,6 +41,42 @@
     .card .info{ padding:8px 10px; display:grid; gap:4px; font-weight:700 }
     .pill{ display:inline-block; background:#f1f5f9; border:1px solid #e5e7eb; border-radius:999px; padding:2px 8px; font-size:12px }
     .empty{ margin:18px 2px; color:#64748b; font-weight:700 }
+  
+    /* --- Photo cards: clickable thumbnail only --- */
+.grid .card { cursor:pointer; }
+.grid .card a { text-decoration:none; }
+
+/* --- Modal viewer --- */
+#photoModal {
+  position: fixed; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(15,23,42,.6); z-index: 1000;
+}
+#photoModal.open { display: flex; }
+#photoModal .panel{
+  background:#fff; border-radius:12px; width:min(1000px,92vw);
+  max-height:90vh; overflow:hidden; box-shadow:0 12px 28px rgba(16,24,40,.25);
+  display:flex; flex-direction:column;
+}
+#photoModal .viewer{
+  background:#000; display:flex; align-items:center; justify-content:center;
+  min-height:50vh;
+}
+#photoModal .viewer img{
+  max-width:100%; max-height:80vh; object-fit:contain; display:block;
+}
+#photoModal .bar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 12px; border-top:1px solid #e5e7eb;
+}
+#photoModal .bar .meta{ font-weight:700; color:#111827 }
+#photoModal .bar .actions{ display:flex; gap:8px }
+#photoModal .btn{
+  border:0; border-radius:10px; padding:8px 12px; font-weight:800; cursor:pointer;
+}
+#photoModal .btn-primary{ background:#111827; color:#fff }
+#photoModal .btn-accent{ background:#d11e2b; color:#fff }
+  
   </style>
 </head>
 <body>
@@ -119,40 +155,83 @@
       startInput.value = iso(d30);
       endInput.value   = iso(today);
 
-      // ---- Render ----
-      function render(photos){
-        resultsEl.innerHTML = '';
-        if (!photos.length){
-          emptyEl.style.display = '';
-          return;
-        }
-        emptyEl.style.display = 'none';
+      // --- replace render() with this version ---
+function render(photos){
+  const resultsEl = document.getElementById('results');
+  const emptyEl   = document.getElementById('empty');
+  resultsEl.innerHTML = '';
 
-        for (const p of photos){
-          const card = document.createElement('div');
-          card.className = 'card';
+  if (!photos.length){
+    emptyEl.style.display = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
 
-          const a = document.createElement('a');
-          a.href = p.url; a.target = '_blank'; a.rel = 'noopener';
+  for (const p of photos){
+    // Card container
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.title = 'Click to view';
 
-          const img = document.createElement('img');
-          img.src = p.url; img.alt = p.storagePath || p.siteId;
-          img.loading = 'lazy'; a.appendChild(img);
-          card.appendChild(a);
+    // Thumbnail (no visible link text)
+    const img = document.createElement('img');
+    img.src = p.url;
+    img.alt = p.siteId || 'Site photo';
+    img.loading = 'lazy';
+    card.appendChild(img);
 
-          const info = document.createElement('div');
-          info.className = 'info';
-          const line1 = document.createElement('div');
-          line1.innerHTML = `<span class="pill">${p.siteId || 'UNKNOWN'}</span> ${p.when || ''}`;
-          const line2 = document.createElement('div');
-          line2.innerHTML = `<span class="pill">By</span> ${p.operatorEmail || p.uploadedBy || p.operatorUid || 'unknown'}`;
-          info.appendChild(line1);
-          info.appendChild(line2);
-          card.appendChild(info);
+    // Meta (site + when + operator)
+    const info = document.createElement('div');
+    info.className = 'info';
+    const line1 = document.createElement('div');
+    line1.innerHTML = `<span class="pill">${p.siteId || 'UNKNOWN'}</span> ${p.when || ''}`;
+    const line2 = document.createElement('div');
+    line2.innerHTML = `<span class="pill">By</span> ${p.operatorEmail || p.uploadedBy || p.operatorUid || 'unknown'}`;
+    info.appendChild(line1);
+    info.appendChild(line2);
+    card.appendChild(info);
 
-          resultsEl.appendChild(card);
-        }
-      }
+    // Click -> open modal
+    card.addEventListener('click', () => openPhotoModal(p));
+
+    resultsEl.appendChild(card);
+  }
+}
+
+// --- helpers for the modal viewer ---
+function fileNameFromPath(s){
+  const t = String(s||''); const ix = t.lastIndexOf('/'); return ix >= 0 ? t.slice(ix+1) : (t || 'photo.jpg');
+}
+function openPhotoModal(p){
+  const modal = document.getElementById('photoModal');
+  const img   = document.getElementById('modalImg');
+  const meta  = document.getElementById('modalMeta');
+  const openL = document.getElementById('modalOpen');
+  const dlL   = document.getElementById('modalDownload');
+
+  img.src = p.url;
+  meta.textContent = `${p.siteId || ''}  ${p.when || ''}  —  ${p.operatorEmail || p.uploadedBy || p.operatorUid || ''}`;
+  openL.href = p.url;
+  dlL.href   = p.url;
+  dlL.setAttribute('download', fileNameFromPath(p.storagePath) || 'photo.jpg');
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  document.body.style.overflow = 'hidden';
+}
+(function wireModal(){
+  const modal = document.getElementById('photoModal');
+  const close = document.getElementById('modalClose');
+  function closeModal(){
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+  }
+  close.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
+  window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+  }
+ }
 
       // ---- Normalizer ----
       function normalize(doc){
@@ -281,5 +360,21 @@
       });
     })();
   </script>
+
+  <!-- Photo modal -->
+<div id="photoModal" aria-hidden="true">
+  <div class="panel" role="dialog" aria-modal="true">
+    <div class="viewer"><img id="modalImg" alt="Site photo" /></div>
+    <div class="bar">
+      <div class="meta" id="modalMeta"></div>
+      <div class="actions">
+        <a id="modalOpen" target="_blank" rel="noopener" class="btn btn-primary">Open original</a>
+        <a id="modalDownload" class="btn btn-accent" download>Download</a>
+        <button id="modalClose" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

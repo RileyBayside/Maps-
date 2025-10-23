@@ -55,6 +55,15 @@
 
     #sidebar #sidebar-content{ padding:8px 12px 16px; }
 
+    /* Progress bar for photo upload (sidebar-friendly) */
+    #sidebar #photoProg{
+      display:none;
+      width: calc(100% - 24px);
+      height: 6px;
+      margin: 6px 12px 0;
+      accent-color: var(--accent);
+    }
+
     /* Groups / details */
     #sidebar-content details{
       border:1px solid var(--muted); border-radius:12px; overflow:hidden;
@@ -128,6 +137,12 @@
     <button id="toggle-all">Collapse All</button>
     <div id="sidebar-content"></div>
 
+    <!-- Upload site photo (moved here, styled like other buttons) -->
+    <button class="wide-btn" id="uploadSitePhotoBtn" type="button" title="Upload a photo for the selected site">
+      Upload site photo
+    </button>
+    <progress id="photoProg" value="0" max="100"></progress>
+
     <div style="padding:6px 0 14px">
       <button class="wide-btn" onclick="adminLogin()">Admin Login</button>
       <div id="admin-tools" style="display:none; margin-top:6px; padding:0 12px; display:grid; gap:6px">
@@ -139,14 +154,10 @@
     </div>
   </div>
 
-  <!-- Site photo upload -->
-<div id="photo-uploader" style="display:flex; align-items:center; gap:8px; margin:8px 0">
-  <button id="uploadSitePhotoBtn" class="btn btn-accent" type="button">Upload site photo</button>
-  <progress id="photoProg" value="0" max="100" style="display:none; width:160px"></progress>
-</div>
+  <!-- (Removed old top-of-page photo-uploader block) -->
 
-<!-- Optional: simple gallery -->
-<div id="sitePhotoGallery" style="display:grid; grid-template-columns:repeat(auto-fill,120px); gap:8px"></div>
+  <!-- Optional: simple gallery -->
+  <div id="sitePhotoGallery" style="display:grid; grid-template-columns:repeat(auto-fill,120px); gap:8px"></div>
 
   <!-- Map -->
   <div id="map"></div>
@@ -218,7 +229,7 @@
         root.querySelectorAll('details').forEach(d => {
           const any = [...d.querySelectorAll('li, .list-item, .sidebar-row, .item')]
             .some(el => el.style.display !== 'none');
-          d.style.display = any ? '' : 'none';
+          d.display = any ? '' : 'none';
           if (any) d.open = true;
         });
       }

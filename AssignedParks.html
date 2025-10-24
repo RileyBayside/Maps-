@@ -18,6 +18,8 @@
       --soft:#f8fafc; --soft-2:#f1f5f9;
     }
     #map { height: 100vh; }
+    body.hide-markers .leaflet-marker-pane > * { display: none !important; }
+
 
     /* Sidebar compact + brand */
     #sidebar{
@@ -611,18 +613,18 @@
 })();
   </script>
 
-  <!-- PERFORMANCE: lazy "park/unpark" markers by zoom + viewport, and hide labels until close -->
   <script>
 (function(){
-  const SHOW_MARKERS_ZOOM = 14;   // below this: remove markers from map
-  const SHOW_LABELS_ZOOM  = 16;   // below this (but >= 14): markers on, labels hidden
-  const VIEW_PAD = 0.2;           // extend viewport a bit so we don't pop markers too early
-
-  // Optional: restrict to assigned IDs if focus=... is present
+  const SHOW_MARKERS_ZOOM = 14;   // below this: no markers
+  const SHOW_LABELS_ZOOM  = 16;   // below this (but >=14): markers shown, labels hidden
+  const VIEW_PAD = 0.2;           // viewport padding for culling
   const idRx = /\bM\d{3,5}\b/i;
   const up = s => String(s||'').trim().toUpperCase();
   const focus = new URLSearchParams(location.search).get('focus') || '';
   const FOCUS_SET = new Set(focus.split(',').map(up).filter(Boolean));
+
+  // Hide markers right away (prevents initial flash)
+  document.body.classList.add('hide-markers');
 
   function getMap(){
     const picks = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
@@ -650,7 +652,6 @@
     return !!(sid && FOCUS_SET.has(sid));
   }
 
-  // Track markers we remove so we can re-add them later
   const PARKED = new Set();
 
   function wantOnMap(map, m){
@@ -662,7 +663,6 @@
     const b = map.getBounds().pad(VIEW_PAD);
     return b.contains(ll);
   }
-
   function applyLabelState(map, m){
     if (!m._icon) return;
     const showLabels = map.getZoom() >= SHOW_LABELS_ZOOM;
@@ -671,7 +671,12 @@
   }
 
   function rebalance(map){
-    // Demote any on-map markers that we don't want
+    // Global show/hide to prevent any flash
+    const z = map.getZoom();
+    const shouldShowAny = z >= SHOW_MARKERS_ZOOM;
+    document.body.classList.toggle('hide-markers', !shouldShowAny);
+
+    // Demote on-map markers we don't want
     for (const k in map._layers){
       const lyr = map._layers[k];
       if (!isMarker(lyr)) continue;
@@ -684,7 +689,7 @@
         applyLabelState(map, lyr);
       }
     }
-    // Promote parked markers that we now want
+    // Promote parked markers we now want
     for (const m of Array.from(PARKED)){
       if (wantOnMap(map, m)){
         m.addTo(map);
@@ -696,17 +701,21 @@
 
   function start(){
     const map = getMap();
-    if (!map) return setTimeout(start, 300);
+    if (!map) return setTimeout(start, 250);
 
     const run = () => requestAnimationFrame(() => rebalance(map));
     map.on('zoomend moveend layeradd', run);
     map.whenReady(run);
-    // a few passes to catch markers that stream in
-    setTimeout(run, 0); setTimeout(run, 400); setTimeout(run, 1200);
+
+    // Initial passes to catch markers as they stream in
+    setTimeout(run, 0);
+    setTimeout(run, 300);
+    setTimeout(run, 1200);
   }
   start();
 })();
-  </script>
+</script>
+
 
 </body>
 </html>

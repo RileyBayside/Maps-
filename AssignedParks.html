@@ -30,7 +30,6 @@
     }
   /* Hide any text/background inside DivIcon marker when we’re in no-label mode */
   #map .leaflet-marker-icon.no-labels,
-  #map .leaflet-marker-icon.no-labels * {
     color: transparent !important;
     text-shadow: none !important;
     background: transparent !important;
@@ -481,296 +480,157 @@
   })();
   </script>
 
-  <!-- Upload-to-Storage + Firestore index + simple gallery -->
   <script>
-  (function(){
-    const storage = firebase.storage();
-    const db = firebase.firestore();
-
-    // Replace as needed with page's source of truth
-    function getActiveSiteId() {
-      return window.currentSiteId || null;
-    }
-
-    function fmtSafeName(file) {
-      const ts = Date.now();
-      const base = (file?.name || 'photo.jpg').replace(/\s+/g,'_');
-      return `${ts}-${base}`;
-    }
-              if (prog) { prog.value = 100; setTimeout(()=>prog.style.display='none', 400); }
-              renderSiteGallery(String(siteId).toUpperCase());
-            } catch (e) {
-              if (prog) prog.style.display = 'none';
-              alert('Saved to storage but failed to index in Firestore.');
-              console.error(e);
-            }
-          }
-        );
-      };
-      input.click();
-    }
-
-    // --- Optional: super-simple gallery for this site ---
-    async function renderSiteGallery(siteId) {
-      const box = document.getElementById('sitePhotoGallery');
-      if (!box || !siteId) return;
-      box.innerHTML = 'Loading…';
-
-      try{
-        const q = await db.collection('site_photos')
-          .where('siteId', '==', siteId)
-          .orderBy('createdAt', 'desc')
-          .limit(24)
-          .get();
-
-        if (q.empty) { box.textContent = 'No photos yet.'; return; }
-
-        const frag = document.createDocumentFragment();
-        q.forEach(doc => {
-          const d = doc.data();
-          const a = document.createElement('a');
-          a.href = d.url || '#';
-          a.target = '_blank';
-          a.rel = 'noopener';
-
-          const img = document.createElement('img');
-          img.src = d.url;
-          img.alt = d.storagePath;
-          img.style.width = '120px';
-          img.style.height = '90px';
-          img.style.objectFit = 'cover';
-          img.style.borderRadius = '8px';
-          img.loading = 'lazy';
-
-          a.appendChild(img);
-          frag.appendChild(a);
-        });
-        box.innerHTML = '';
-        box.appendChild(frag);
-      }catch(e){
-        box.textContent = 'Failed to load photos.';
-        console.error(e);
-      }
-    }
-
-    // Button hookup
-    document.getElementById('uploadSitePhotoBtn')?.addEventListener('click', async () => {
-      let siteId = getActiveSiteId();
-      if (!siteId) {
-        siteId = prompt('Enter Site ID (e.g., M0123)');
-        if (!siteId) return;
-      }
-      siteId = siteId.trim().toUpperCase();
-      await startPhotoUpload(siteId);
-    });
-
-    // Render gallery whenever we know the site or auth changes
-    firebase.auth().onAuthStateChanged(() => {
-      const s = getActiveSiteId();
-      if (s) renderSiteGallery(s);
-    });
-
-    // Expose for other scripts if needed
-    window.renderSiteGallery = renderSiteGallery;
-  })();
-  </script>
-
-  <!-- Lean-map culling (hide markers out of view; if focus=..., hide non-assigned) -->
-  <script>
-    (function(){
-      const idRx = /\bM\d{3,5}\b/i;
-      const up = s => String(s||'').trim().toUpperCase();
-      const focus = new URLSearchParams(location.search).get('focus') || '';
-      const FOCUS_SET = new Set(focus.split(',').map(up).filter(Boolean));
-
-      function getMap(){
-        const candidates = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
-        return candidates.find(m => m && typeof m.getBounds === 'function' && typeof m.on === 'function') || null;
-      }
-      function siteIdFromMarker(m){
-        if (!m) return null;
-        if (m.options && m.options.siteId) return up(m.options.siteId);
-        if (m.options && m.options.title){
-          const mm = String(m.options.title).toUpperCase().match(idRx);
-          if (mm) return mm[0];
-        }
-        if (typeof m.getTooltip === 'function' && m.getTooltip()){
-          const txt = m.getTooltip().getContent();
-          const mm = String(txt||'').toUpperCase().match(idRx);
-          if (mm) return mm[0];
-        }
-        const txt = (m._icon && m._icon.textContent) ? m._icon.textContent : '';
-        const mm = String(txt||'').toUpperCase().match(idRx);
-        return mm ? mm[0] : null;
-      }
-      function setMarkerVisible(m, on){
-        if (m._icon)  m._icon.style.display = on ? '' : 'none';
-        if (m._shadow) m._shadow.style.display = on ? '' : 'none';
-      }
-
-      function startWhenReady(){
-        const map = getMap();
-        if (!map) { setTimeout(startWhenReady, 300); return; }
-
-        let raf = 0;
-        const refresh = () => {
-          if (raf) cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(() => {
-            const pad = map.getBounds().pad(0.2);
-            for (const k in map._layers){
-              const layer = map._layers[k];
-              if (!(layer instanceof L.Marker)) continue;
-              const inView = pad.contains(layer.getLatLng());
-              if (FOCUS_SET.size){
-                const sid = siteIdFromMarker(layer);
-                const isAssigned = !!(sid && FOCUS_SET.has(sid));
-                setMarkerVisible(layer, inView && isAssigned);
-              } else {
-                setMarkerVisible(layer, inView);
-              }
-            }
-          });
-        };
-
-        map.on('moveend zoomend', refresh);
-        setTimeout(refresh, 0);
-
-        const tidyUntil = Date.now() + 8000;
-        const iv = setInterval(() => {
-          refresh();
-          if (Date.now() > tidyUntil) clearInterval(iv);
-        }, 600);
-      }
-
-      startWhenReady();
-    })();
-  </script>
-
-  <!-- Race-proof AUTOLOCK to assigned area (fit & lock once, expand-only later) -->
-  <script>
-    (function(){
-      const params = new URLSearchParams(location.search);
-      const forceLock = params.get('autolock') === '1';
-      const forceUnlock = params.get('unlock') === '1';
-      const up = s => String(s||'').trim().toUpperCase();
-      const focusSet = new Set((params.get('focus')||'').split(',').map(up).filter(Boolean));
-      const idRx = /\bM\d{3,5}\b/i;
-
-      let isAdmin = false; // best-effort admin detection (operators autolock by default)
-      try {
-        firebase.auth().onAuthStateChanged(async (u)=>{
-          if (!u) return;
-          try {
-            const snap = await firebase.firestore().collection('users').doc(u.uid).get();
-            isAdmin = (snap.data()?.role === 'admin');
-          } catch {}
-        });
-      } catch {}
-
-      function getMap(){
-        const candidates = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
-        return candidates.find(m => m && typeof m.getBounds === 'function' && typeof m.on === 'function') || null;
-      }
-      function siteIdFromMarker(m){
-        if (!m) return null;
-        if (m.options && m.options.siteId) return up(m.options.siteId);
-        if (m.options && m.options.title){
-          const mm = String(m.options.title).toUpperCase().match(idRx);
-          if (mm) return mm[0];
-        }
-        if (typeof m.getTooltip === 'function' && m.getTooltip()){
-          const txt = m.getTooltip().getContent();
-          const mm = String(txt||'').toUpperCase().match(idRx);
-          if (mm) return mm[0];
-        }
-        const txt = (m._icon && m._icon.textContent) ? m._icon.textContent : '';
-        const mm = String(txt||'').toUpperCase().match(idRx);
-        return mm ? mm[0] : null;
-      }
-      function assignedBounds(map){
-        let b = null;
-        for (const k in map._layers){
-          const lyr = map._layers[k];
-          if (!(lyr instanceof L.Marker)) continue;
-          const sid = siteIdFromMarker(lyr);
-          if (focusSet.size && (!sid || !focusSet.has(sid))) continue;
-          const ll = lyr.getLatLng();
-          if (!ll) continue;
-          b = b ? b.extend(ll) : L.latLngBounds(ll, ll);
-        }
-        return b;
-      }
-
-      function shouldAutoLock(){
-        if (forceUnlock) return false;
-        if (forceLock) return true;
-        if (focusSet.size > 0 && !isAdmin) return true;
-        return false;
-      }
-
-      function startWhenReady(){
-        const map = getMap();
-        if (!map) { setTimeout(startWhenReady, 300); return; }
-        if (!shouldAutoLock()) return;
-
-        let locked = false;
-        let maxB = null;
-
-        function tryLock(){
-          const b = assignedBounds(map);
-          if (!b) return false;
-          maxB = b.pad(0.15);
-          try { map.fitBounds(maxB, { padding:[24,24] }); } catch(e) {}
-          map.setMaxBounds(maxB);
-          map.options.maxBoundsViscosity = 1.0;
-          locked = true;
-          return true;
-        }
-        function maybeExpand(){
-          if (!locked || !maxB) return;
-          const b = assignedBounds(map);
-          if (b && !maxB.contains(b)){
-            maxB = b.pad(0.15);
-            map.setMaxBounds(maxB);
-          }
-        }
-
-        // Retry a few times while markers stream in
-        let tries = 0;
-        const iv = setInterval(()=>{
-          tries++;
-          if (tryLock() || tries >= 20) clearInterval(iv); // ~10s max
-        }, 500);
-
-        // Expand-only pass for a short period
-        const until = Date.now() + 8000;
-        const tidier = setInterval(()=>{
-          maybeExpand();
-          if (Date.now() > until) clearInterval(tidier);
-        }, 600);
-      }
-
-      // Kick off after scripts & (most) layers are in
-      setTimeout(startWhenReady, 400);
-      setTimeout(startWhenReady, 2000); // safety
-    })();
-  </script>
-<script>
 (function(){
-  // Clean open:
-  // - below 16: hide ALL markers (no boxes, nothing)
-  // - 16–16.9: show markers but suppress label art
-  // - 17+: show full labels
-  const SHOW_MARKERS_ZOOM = 16;
-  const SHOW_LABELS_ZOOM  = 17;
+  const storage = firebase.storage();
+  const db = firebase.firestore();
+
+  // Replace as needed with page's source of truth
+  function getActiveSiteId(){ return window.currentSiteId || null; }
+
+  function fmtSafeName(file){
+    const ts = Date.now();
+    const base = (file?.name || 'photo.jpg').replace(/\s+/g,'_');
+    return `${ts}-${base}`;
+  }
+
+  async function startPhotoUpload(siteId){
+    const user = firebase.auth().currentUser;
+    if (!user){ alert('Sign in required'); return; }
+
+    // Hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      const safeName = fmtSafeName(file);
+      const path = `work_photos/${siteId}/${user.uid}/${safeName}`;
+      const ref  = storage.ref(path);
+
+      const meta = {
+        contentType: file.type || 'image/jpeg',
+        customMetadata: { siteId, uploadedBy: user.uid }
+      };
+
+      const prog = document.getElementById('photoProg');
+      if (prog) { prog.value = 0; prog.style.display = 'block'; }
+
+      const task = ref.put(file, meta);
+
+      task.on('state_changed',
+        snap => {
+          if (prog) prog.value = Math.round(100 * snap.bytesTransferred / snap.totalBytes);
+        },
+        err => {
+          if (prog) prog.style.display = 'none';
+          alert('Upload failed: ' + (err?.message || err));
+        },
+        async () => {
+          try{
+            const url = await ref.getDownloadURL();
+            await db.collection('site_photos').add({
+              siteId: String(siteId).toUpperCase(),
+              url,
+              storagePath: path,
+              uploadedBy: user.uid,
+              operatorUid: user.uid,
+              operatorEmail: user.email || null,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            if (prog) { prog.value = 100; setTimeout(()=>prog.style.display='none', 400); }
+            renderSiteGallery(String(siteId).toUpperCase());
+          }catch(e){
+            if (prog) prog.style.display = 'none';
+            alert('Saved to storage but failed to index in Firestore.');
+            console.error(e);
+          }
+        }
+      );
+    };
+
+    input.click();
+  }
+
+  // --- Optional: simple gallery for this site ---
+  async function renderSiteGallery(siteId){
+    const box = document.getElementById('sitePhotoGallery');
+    if (!box || !siteId) return;
+    box.textContent = 'Loading…';
+    try{
+      const q = await db.collection('site_photos')
+        .where('siteId','==',siteId)
+        .orderBy('createdAt','desc')
+        .limit(24)
+        .get();
+
+      if (q.empty){ box.textContent = 'No photos yet.'; return; }
+
+      const frag = document.createDocumentFragment();
+      q.forEach(doc => {
+        const d = doc.data();
+        const a = document.createElement('a');
+        a.href = d.url || '#';
+        a.target = '_blank'; a.rel = 'noopener';
+
+        const img = document.createElement('img');
+        img.src = d.url; img.alt = d.storagePath;
+        img.style.width = '120px';
+        img.style.height = '90px';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '8px';
+        img.loading = 'lazy';
+
+        a.appendChild(img);
+        frag.appendChild(a);
+      });
+      box.innerHTML = '';
+      box.appendChild(frag);
+    }catch(e){
+      box.textContent = 'Failed to load photos.';
+      console.error(e);
+    }
+  }
+
+  // Button hookup
+  document.getElementById('uploadSitePhotoBtn')?.addEventListener('click', async () => {
+    let siteId = getActiveSiteId();
+    if (!siteId){
+      siteId = prompt('Enter Site ID (e.g., M0123)');
+      if (!siteId) return;
+    }
+    await startPhotoUpload(String(siteId).trim().toUpperCase());
+  });
+
+  // Render gallery when we know the site / auth changes
+  firebase.auth().onAuthStateChanged(() => {
+    const s = getActiveSiteId();
+    if (s) renderSiteGallery(String(s).toUpperCase());
+  });
+
+  // Expose if other scripts want it
+  window.renderSiteGallery = renderSiteGallery;
+})();
+</script>
+
+  <script>
+(function(){
+  // Below 14: hide ALL markers; 14–15: markers shown but labels hidden; 16+: labels shown
+  const SHOW_MARKERS_ZOOM = 14;
+  const SHOW_LABELS_ZOOM  = 16;
 
   function getMap(){
     const picks = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
     return picks.find(m => m && typeof m.getZoom === 'function' && typeof m.on === 'function') || null;
   }
   function isMarker(l){ return l instanceof L.Marker; }
-  function setVisible(m, on){
-    if (m._icon)  m._icon.style.display = on ? '' : 'none';
+  function setMarkerVisible(m, on){
+    if (m._icon)   m._icon.style.display = on ? '' : 'none';
     if (m._shadow) m._shadow.style.display = on ? '' : 'none';
   }
 
@@ -783,10 +643,7 @@
       const lyr = map._layers[k];
       if (!isMarker(lyr)) continue;
 
-      // Hide or show the whole marker
-      setVisible(lyr, showMarkers);
-
-      // If shown but not yet at label zoom, strip visual label bits
+      setMarkerVisible(lyr, showMarkers);
       if (lyr._icon){
         if (showMarkers && !showLabels) lyr._icon.classList.add('no-labels');
         else                            lyr._icon.classList.remove('no-labels');
@@ -796,20 +653,17 @@
 
   function start(){
     const map = getMap();
-    if (!map) return setTimeout(start, 250);
-
+    if (!map) return setTimeout(start, 300);
     const run = () => requestAnimationFrame(() => refresh(map));
     map.on('zoomend', run);
     map.on('layeradd', run);
     map.whenReady(run);
-
-    // Initial passes (catch markers that stream in)
-    setTimeout(run,   0);
-    setTimeout(run, 400);
-    setTimeout(run,1200);
+    // initial passes to catch markers streaming in
+    setTimeout(run, 0); setTimeout(run, 400); setTimeout(run, 1200);
   }
   start();
 })();
 </script>
+  
 </body>
 </html>

@@ -34,6 +34,12 @@
     color: transparent !important;
     text-shadow: none !important;
   } 
+ /* When label-gating is active, hide any text inside DivIcon markers */
+  #map .leaflet-marker-icon.no-labels,
+  #map .leaflet-marker-icon.no-labels * {
+    color: transparent !important;
+    text-shadow: none !important;
+  } 
     #sidebar .sidebar-head{
       position: sticky; top:0; z-index: 5;
       display:flex; align-items:center; gap:10px;
@@ -801,6 +807,55 @@
   start();
 })();
 </script>
-  
+<script>
+(function(){
+  // Keep the map clean on open:
+  // - below 14: hide ALL markers
+  // - 14–15: show markers, hide labels
+  // - 16+: show labels
+  const SHOW_MARKERS_ZOOM = 14;
+  const SHOW_LABELS_ZOOM  = 16;
+
+  function getMap(){
+    const picks = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
+    return picks.find(m => m && typeof m.getZoom === 'function' && typeof m.on === 'function') || null;
+  }
+  function setMarkerVisible(m, on){
+    if (m._icon)  m._icon.style.display = on ? '' : 'none';
+    if (m._shadow) m._shadow.style.display = on ? '' : 'none';
+  }
+  function isMarker(l){ return l instanceof L.Marker; }
+
+  function refresh(map){
+    const z = map.getZoom();
+    const showMarkers = z >= SHOW_MARKERS_ZOOM;
+    const showLabels  = z >= SHOW_LABELS_ZOOM;
+
+    for (const k in map._layers){
+      const lyr = map._layers[k];
+      if (!isMarker(lyr)) continue;
+
+      setMarkerVisible(lyr, showMarkers);
+
+      if (lyr._icon){
+        if (showMarkers && !showLabels) lyr._icon.classList.add('no-labels');
+        else                            lyr._icon.classList.remove('no-labels');
+      }
+    }
+  }
+
+  function start(){
+    const map = getMap();
+    if (!map) return setTimeout(start, 250);
+    const run = () => requestAnimationFrame(() => refresh(map));
+    map.on('zoomend', run);
+    map.on('layeradd', run);
+    map.whenReady(run);
+    // initial passes to catch markers that stream in
+    setTimeout(run, 0); setTimeout(run, 400); setTimeout(run, 1200);
+  }
+  start();
+})();
+</script>
 </body>
 </html>

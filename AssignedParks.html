@@ -28,13 +28,16 @@
       box-shadow:0 8px 26px rgba(16,24,40,.08);
       overflow:auto;
     }
-  /* Hide any text/background inside DivIcon marker when we’re in no-label mode */
-  #map .leaflet-marker-icon.no-labels,
-    color: transparent !important;
-    text-shadow: none !important;
-    background: transparent !important;
-    border-color: transparent !important;
-  }
+
+    /* Hide any text/background inside DivIcon marker when we’re in no-label mode */
+    #map .leaflet-marker-icon.no-labels,
+    #map .leaflet-marker-icon.no-labels * {
+      color: transparent !important;
+      text-shadow: none !important;
+      background: transparent !important;
+      border-color: transparent !important;
+    }
+
     #sidebar .sidebar-head{
       position: sticky; top:0; z-index: 5;
       display:flex; align-items:center; gap:10px;
@@ -144,7 +147,7 @@
     <button id="toggle-all">Collapse All</button>
     <div id="sidebar-content"></div>
 
-    <!-- Upload site photo (moved here, styled like other buttons) -->
+    <!-- Upload site photo -->
     <button class="wide-btn" id="uploadSitePhotoBtn" type="button" title="Upload a photo for the selected site">
       Upload site photo
     </button>
@@ -480,12 +483,12 @@
   })();
   </script>
 
+  <!-- Site photo upload + simple gallery -->
   <script>
 (function(){
   const storage = firebase.storage();
   const db = firebase.firestore();
 
-  // Replace as needed with page's source of truth
   function getActiveSiteId(){ return window.currentSiteId || null; }
 
   function fmtSafeName(file){
@@ -498,7 +501,6 @@
     const user = firebase.auth().currentUser;
     if (!user){ alert('Sign in required'); return; }
 
-    // Hidden file input
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -523,13 +525,8 @@
       const task = ref.put(file, meta);
 
       task.on('state_changed',
-        snap => {
-          if (prog) prog.value = Math.round(100 * snap.bytesTransferred / snap.totalBytes);
-        },
-        err => {
-          if (prog) prog.style.display = 'none';
-          alert('Upload failed: ' + (err?.message || err));
-        },
+        snap => { if (prog) prog.value = Math.round(100 * snap.bytesTransferred / snap.totalBytes); },
+        err  => { if (prog) prog.style.display = 'none'; alert('Upload failed: ' + (err?.message || err)); },
         async () => {
           try{
             const url = await ref.getDownloadURL();
@@ -557,7 +554,6 @@
     input.click();
   }
 
-  // --- Optional: simple gallery for this site ---
   async function renderSiteGallery(siteId){
     const box = document.getElementById('sitePhotoGallery');
     if (!box || !siteId) return;
@@ -597,7 +593,6 @@
     }
   }
 
-  // Button hookup
   document.getElementById('uploadSitePhotoBtn')?.addEventListener('click', async () => {
     let siteId = getActiveSiteId();
     if (!siteId){
@@ -607,46 +602,94 @@
     await startPhotoUpload(String(siteId).trim().toUpperCase());
   });
 
-  // Render gallery when we know the site / auth changes
   firebase.auth().onAuthStateChanged(() => {
     const s = getActiveSiteId();
     if (s) renderSiteGallery(String(s).toUpperCase());
   });
 
-  // Expose if other scripts want it
   window.renderSiteGallery = renderSiteGallery;
 })();
-</script>
+  </script>
 
+  <!-- PERFORMANCE: lazy "park/unpark" markers by zoom + viewport, and hide labels until close -->
   <script>
 (function(){
-  // Below 14: hide ALL markers; 14–15: markers shown but labels hidden; 16+: labels shown
-  const SHOW_MARKERS_ZOOM = 14;
-  const SHOW_LABELS_ZOOM  = 16;
+  const SHOW_MARKERS_ZOOM = 14;   // below this: remove markers from map
+  const SHOW_LABELS_ZOOM  = 16;   // below this (but >= 14): markers on, labels hidden
+  const VIEW_PAD = 0.2;           // extend viewport a bit so we don't pop markers too early
+
+  // Optional: restrict to assigned IDs if focus=... is present
+  const idRx = /\bM\d{3,5}\b/i;
+  const up = s => String(s||'').trim().toUpperCase();
+  const focus = new URLSearchParams(location.search).get('focus') || '';
+  const FOCUS_SET = new Set(focus.split(',').map(up).filter(Boolean));
 
   function getMap(){
     const picks = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
     return picks.find(m => m && typeof m.getZoom === 'function' && typeof m.on === 'function') || null;
   }
   function isMarker(l){ return l instanceof L.Marker; }
-  function setMarkerVisible(m, on){
-    if (m._icon)   m._icon.style.display = on ? '' : 'none';
-    if (m._shadow) m._shadow.style.display = on ? '' : 'none';
+  function siteIdFromMarker(m){
+    if (!m) return null;
+    if (m.options && m.options.siteId) return up(m.options.siteId);
+    if (m.options && m.options.title){
+      const mm = String(m.options.title).toUpperCase().match(idRx);
+      if (mm) return mm[0];
+    }
+    if (typeof m.getTooltip === 'function' && m.getTooltip()){
+      const mm = String(m.getTooltip().getContent()||'').toUpperCase().match(idRx);
+      if (mm) return mm[0];
+    }
+    const txt = (m._icon && m._icon.textContent) ? m._icon.textContent : '';
+    const mm = String(txt||'').toUpperCase().match(idRx);
+    return mm ? mm[0] : null;
+  }
+  function isAssigned(m){
+    if (!FOCUS_SET.size) return true;
+    const sid = siteIdFromMarker(m);
+    return !!(sid && FOCUS_SET.has(sid));
   }
 
-  function refresh(map){
-    const z = map.getZoom();
-    const showMarkers = z >= SHOW_MARKERS_ZOOM;
-    const showLabels  = z >= SHOW_LABELS_ZOOM;
+  // Track markers we remove so we can re-add them later
+  const PARKED = new Set();
 
+  function wantOnMap(map, m){
+    const z = map.getZoom();
+    if (z < SHOW_MARKERS_ZOOM) return false;
+    if (!isAssigned(m)) return false;
+    const ll = m.getLatLng ? m.getLatLng() : null;
+    if (!ll) return false;
+    const b = map.getBounds().pad(VIEW_PAD);
+    return b.contains(ll);
+  }
+
+  function applyLabelState(map, m){
+    if (!m._icon) return;
+    const showLabels = map.getZoom() >= SHOW_LABELS_ZOOM;
+    if (showLabels) m._icon.classList.remove('no-labels');
+    else           m._icon.classList.add('no-labels');
+  }
+
+  function rebalance(map){
+    // Demote any on-map markers that we don't want
     for (const k in map._layers){
       const lyr = map._layers[k];
       if (!isMarker(lyr)) continue;
-
-      setMarkerVisible(lyr, showMarkers);
-      if (lyr._icon){
-        if (showMarkers && !showLabels) lyr._icon.classList.add('no-labels');
-        else                            lyr._icon.classList.remove('no-labels');
+      if (!wantOnMap(map, lyr)){
+        if (map.hasLayer(lyr)){
+          map.removeLayer(lyr);
+          PARKED.add(lyr);
+        }
+      } else {
+        applyLabelState(map, lyr);
+      }
+    }
+    // Promote parked markers that we now want
+    for (const m of Array.from(PARKED)){
+      if (wantOnMap(map, m)){
+        m.addTo(map);
+        applyLabelState(map, m);
+        PARKED.delete(m);
       }
     }
   }
@@ -654,16 +697,16 @@
   function start(){
     const map = getMap();
     if (!map) return setTimeout(start, 300);
-    const run = () => requestAnimationFrame(() => refresh(map));
-    map.on('zoomend', run);
-    map.on('layeradd', run);
+
+    const run = () => requestAnimationFrame(() => rebalance(map));
+    map.on('zoomend moveend layeradd', run);
     map.whenReady(run);
-    // initial passes to catch markers streaming in
+    // a few passes to catch markers that stream in
     setTimeout(run, 0); setTimeout(run, 400); setTimeout(run, 1200);
   }
   start();
 })();
-</script>
-  
+  </script>
+
 </body>
 </html>

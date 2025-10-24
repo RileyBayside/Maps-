@@ -58,7 +58,7 @@ BaysideMaps.initParksMowingMap = async function initParksMowingMap(opts = {}) {
   // Example: copy the Leaflet map creation from script.js here
   // (use the same tile layer and styling you use on ParksMowing)
 
-  const map = L.map(containerId, { zoomControl: true, attributionControl: false });
+  const map = L.map(containerId, { zoomControl: true, attributionControl: false, preferCanvas: true });
 
   // same base layer you use in ParksMowing:
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 })

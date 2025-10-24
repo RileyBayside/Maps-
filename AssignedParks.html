@@ -28,6 +28,12 @@
       box-shadow:0 8px 26px rgba(16,24,40,.08);
       overflow:auto;
     }
+ /* Hide marker text when we’re in “no-labels” mode */
+  #map .leaflet-marker-icon.no-labels,
+  #map .leaflet-marker-icon.no-labels * {
+    color: transparent !important;
+    text-shadow: none !important;
+  } 
     #sidebar .sidebar-head{
       position: sticky; top:0; z-index: 5;
       display:flex; align-items:center; gap:10px;
@@ -750,5 +756,51 @@
       setTimeout(startWhenReady, 2000); // safety
     })();
   </script>
+<script>
+(function(){
+  // Tune these to taste:
+  const SHOW_MARKERS_ZOOM = 14;  // below this: hide markers entirely
+  const SHOW_LABELS_ZOOM  = 16;  // at/above this: show labels
+
+  function getMap(){
+    const c = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
+    return c.find(m => m && typeof m.getZoom === 'function' && typeof m.on === 'function') || null;
+  }
+  function setMarkerVisible(m, on){
+    if (m._icon)  m._icon.style.display = on ? '' : 'none';
+    if (m._shadow) m._shadow.style.display = on ? '' : 'none';
+  }
+  function isMarker(l){ return l instanceof L.Marker; }
+
+  function refresh(map){
+    const z = map.getZoom();
+    const showMarkers = z >= SHOW_MARKERS_ZOOM;
+    const showLabels  = z >= SHOW_LABELS_ZOOM;
+
+    for (const k in map._layers){
+      const lyr = map._layers[k];
+      if (!isMarker(lyr)) continue;
+
+      setMarkerVisible(lyr, showMarkers);
+      if (lyr._icon){
+        if (showMarkers && !showLabels) lyr._icon.classList.add('no-labels');
+        else                            lyr._icon.classList.remove('no-labels');
+      }
+    }
+  }
+
+  function start(){
+    const map = getMap();
+    if (!map) return setTimeout(start, 300);
+    const run = () => requestAnimationFrame(() => refresh(map));
+    map.on('zoomend', run);
+    map.on('layeradd', run);
+    map.whenReady(run);
+    setTimeout(run, 0); setTimeout(run, 500); setTimeout(run, 1500);
+  }
+  start();
+})();
+</script>
+  
 </body>
 </html>

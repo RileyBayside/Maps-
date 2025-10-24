@@ -28,18 +28,14 @@
       box-shadow:0 8px 26px rgba(16,24,40,.08);
       overflow:auto;
     }
- /* Hide marker text when we’re in “no-labels” mode */
+  /* Hide any text/background inside DivIcon marker when we’re in no-label mode */
   #map .leaflet-marker-icon.no-labels,
   #map .leaflet-marker-icon.no-labels * {
     color: transparent !important;
     text-shadow: none !important;
-  } 
- /* When label-gating is active, hide any text inside DivIcon markers */
-  #map .leaflet-marker-icon.no-labels,
-  #map .leaflet-marker-icon.no-labels * {
-    color: transparent !important;
-    text-shadow: none !important;
-  } 
+    background: transparent !important;
+    border-color: transparent !important;
+  }
     #sidebar .sidebar-head{
       position: sticky; top:0; z-index: 5;
       display:flex; align-items:center; gap:10px;
@@ -761,67 +757,22 @@
   </script>
 <script>
 (function(){
-  // Tune these to taste:
-  const SHOW_MARKERS_ZOOM = 14;  // below this: hide markers entirely
-  const SHOW_LABELS_ZOOM  = 16;  // at/above this: show labels
-
-  function getMap(){
-    const c = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
-    return c.find(m => m && typeof m.getZoom === 'function' && typeof m.on === 'function') || null;
-  }
-  function setMarkerVisible(m, on){
-    if (m._icon)  m._icon.style.display = on ? '' : 'none';
-    if (m._shadow) m._shadow.style.display = on ? '' : 'none';
-  }
-  function isMarker(l){ return l instanceof L.Marker; }
-
-  function refresh(map){
-    const z = map.getZoom();
-    const showMarkers = z >= SHOW_MARKERS_ZOOM;
-    const showLabels  = z >= SHOW_LABELS_ZOOM;
-
-    for (const k in map._layers){
-      const lyr = map._layers[k];
-      if (!isMarker(lyr)) continue;
-
-      setMarkerVisible(lyr, showMarkers);
-      if (lyr._icon){
-        if (showMarkers && !showLabels) lyr._icon.classList.add('no-labels');
-        else                            lyr._icon.classList.remove('no-labels');
-      }
-    }
-  }
-
-  function start(){
-    const map = getMap();
-    if (!map) return setTimeout(start, 300);
-    const run = () => requestAnimationFrame(() => refresh(map));
-    map.on('zoomend', run);
-    map.on('layeradd', run);
-    map.whenReady(run);
-    setTimeout(run, 0); setTimeout(run, 500); setTimeout(run, 1500);
-  }
-  start();
-})();
-</script>
-<script>
-(function(){
-  // Keep the map clean on open:
-  // - below 14: hide ALL markers
-  // - 14–15: show markers, hide labels
-  // - 16+: show labels
-  const SHOW_MARKERS_ZOOM = 14;
-  const SHOW_LABELS_ZOOM  = 16;
+  // Clean open:
+  // - below 16: hide ALL markers (no boxes, nothing)
+  // - 16–16.9: show markers but suppress label art
+  // - 17+: show full labels
+  const SHOW_MARKERS_ZOOM = 16;
+  const SHOW_LABELS_ZOOM  = 17;
 
   function getMap(){
     const picks = [window.BS_MAP, window.__BS_map, window.map, window.leafletMap];
     return picks.find(m => m && typeof m.getZoom === 'function' && typeof m.on === 'function') || null;
   }
-  function setMarkerVisible(m, on){
+  function isMarker(l){ return l instanceof L.Marker; }
+  function setVisible(m, on){
     if (m._icon)  m._icon.style.display = on ? '' : 'none';
     if (m._shadow) m._shadow.style.display = on ? '' : 'none';
   }
-  function isMarker(l){ return l instanceof L.Marker; }
 
   function refresh(map){
     const z = map.getZoom();
@@ -832,8 +783,10 @@
       const lyr = map._layers[k];
       if (!isMarker(lyr)) continue;
 
-      setMarkerVisible(lyr, showMarkers);
+      // Hide or show the whole marker
+      setVisible(lyr, showMarkers);
 
+      // If shown but not yet at label zoom, strip visual label bits
       if (lyr._icon){
         if (showMarkers && !showLabels) lyr._icon.classList.add('no-labels');
         else                            lyr._icon.classList.remove('no-labels');
@@ -844,12 +797,16 @@
   function start(){
     const map = getMap();
     if (!map) return setTimeout(start, 250);
+
     const run = () => requestAnimationFrame(() => refresh(map));
     map.on('zoomend', run);
     map.on('layeradd', run);
     map.whenReady(run);
-    // initial passes to catch markers that stream in
-    setTimeout(run, 0); setTimeout(run, 400); setTimeout(run, 1200);
+
+    // Initial passes (catch markers that stream in)
+    setTimeout(run,   0);
+    setTimeout(run, 400);
+    setTimeout(run,1200);
   }
   start();
 })();
